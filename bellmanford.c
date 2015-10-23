@@ -5,6 +5,35 @@
 #include<ctype.h>
 #include<math.h>
 
+#define END_ITER 3
+
+#define SIZE 128
+int  *tos, *p1, stack[SIZE];
+
+void push(int i)
+{
+    p1++;
+    if(p1 == (tos+SIZE)) 
+    {
+        printf("Stack Overflow.\n");
+    }
+    else
+    {
+        *p1 = i;
+    }
+}
+
+int pop(void)
+{
+    if(p1 == tos) 
+    {
+        printf("Stack Underflow.\n");
+        exit(1);
+    }
+    p1--;
+    return *(p1+1);
+}
+
 struct graph_link {
     int index;
     int infinite_bit;
@@ -28,7 +57,7 @@ void print_graph()
     {
         if(link[i] != NULL)
         {
-            printf("Graph Link %d -> Index:%d Weight:%d Distance From Source:%d Parent Node:%d Source Flag:%d Destination Flag:%d Change Status:%d\n",i,link[i]->index,link[i]->weight,link[i]->dist_from_source,link[i]->prev_node_index,link[i]->source_flag,link[i]->destination_flag,link[i]->change_status);
+            printf("Graph Link %d -> Index:%d Infinite Bit: %d Weight:%d Distance From Source:%d Parent Node:%d Source Flag:%d Destination Flag:%d Change Status:%d\n",i,link[i]->index,link[i]->infinite_bit,link[i]->weight,link[i]->dist_from_source,link[i]->prev_node_index,link[i]->source_flag,link[i]->destination_flag,link[i]->change_status);
             int j;
             for(j=1;j<=127;j++)
             {
@@ -77,17 +106,112 @@ struct graph_link *search_node(int index)
     exit(-1);
 }
 
-void bellmanford()
+void bellmanford(int node_links, int iteration)
 {
-}
+    int iter,i,j;
+    for(i=1;i<=node_links;i++)
+    {
+        if(link[i]->source_flag == 1)
+        {
+            link[i]->weight = 0;
+            link[i]->infinite_bit = 0;
+            link[i]->prev_node_index = link[i]->index;
+            link[i]->dist_from_source = 0;
+            link[i]->change_status = 1;
+            for(j=1;j<=127;j++)
+            {
+                if(link[i]->out_links[j] != NULL)
+                    push(link[i]->out_links[j]->index);
+            }
+        }
+    }
 
+    if(iteration == 1)
+        return;
+
+    struct graph_link *tmp;
+    for(iter=2;iter<=node_links;iter++)
+    {
+        for(i=1;i<=node_links;i++)
+        {
+            if(link[i]->infinite_bit == 0)
+                link[i]->change_status = 2;
+        }
+        tmp = search_node(pop());
+        printf("Working on Node %d\n",tmp->index);
+        for(i=1;i<=node_links;i++)
+        {
+            for(j=1;j<=127;j++)
+            {
+               if(link[i]->out_links[j] != NULL && link[i]->out_links[j]->index == tmp->index && link[i]->infinite_bit == 0)
+               {
+                   if(tmp->infinite_bit == 1)
+                   {
+                        tmp->infinite_bit = 0;
+                        tmp->weight = link[i]->out_weights[j] + link[i]->weight;
+                        tmp->prev_node_index = link[i]->index;
+                        if(link[i]->source_flag == 1)
+                            tmp->dist_from_source = 0;
+                        else
+                            tmp->dist_from_source = link[i]->dist_from_source + 1;
+                        tmp->change_status = 1;
+                   }
+                   else if(tmp->infinite_bit == 0)
+                   {
+                        if(tmp->weight > link[i]->out_weights[j] + link[i]->weight)
+                        {
+                           tmp->weight = link[i]->out_weights[j] + link[i]->weight;
+                           tmp->prev_node_index = link[i]->index;
+                           if(link[i]->source_flag == 1)
+                               tmp->dist_from_source = 0;
+                           else
+                               tmp->dist_from_source = link[i]->dist_from_source + 1;
+                           tmp->change_status = 1;
+                        }
+                        else if(tmp->weight == link[i]->out_weights[j] + link[i]->weight)
+                        {
+                            if(tmp->dist_from_source > link[i]->dist_from_source + 1)
+                            {
+                                tmp->prev_node_index = link[i]->index;
+                                if(link[i]->source_flag == 1)
+                                    tmp->dist_from_source = 0;
+                                else
+                                    tmp->dist_from_source = link[i]->dist_from_source + 1;
+                                tmp->change_status = 1;
+                            }
+                            else if(tmp->dist_from_source == link[i]->dist_from_source + 1)
+                            {
+                                if(tmp->prev_node_index > link[i]->index)
+                                {
+                                    tmp->prev_node_index = link[i]->index;
+                                    tmp->change_status = 1;
+                                }
+                            }
+                        }
+                   }
+               }
+            }
+        }
+        
+        for(j=1;j<=127;j++)
+        {
+            if(tmp->out_links[j] != NULL)
+                push(tmp->out_links[j]->index);
+        }
+        
+        if(iter == iteration)
+            return;
+    }
+}
 
 int main(int argc, char *argv[])
 {
+    tos = stack; /* tos points to the top of stack */
+    p1 = stack; /* initialize p1 */
     if(argc <= 2)
     {
-            printf("Usage: ./bellmanford.out <Input Memory> <Graph Memory>\n");
-            return 0;
+        printf("Usage: ./bellmanford.out <Input Memory> <Graph Memory>\n");
+        return 0;
     }
 
     FILE *graph = fopen(argv[2],"r");
@@ -182,7 +306,9 @@ int main(int argc, char *argv[])
                     }
                 }
                 if(num > 127)
-                    num -= 255;
+                {
+//                    num -= 256;
+                }
                 tmp1->out_weights[k] = num;
 //                print_graph();
             }
@@ -227,7 +353,7 @@ int main(int argc, char *argv[])
 //      print_graph();
         if(num == 255 || num == 0) 
         {
-            bellmanford();
+            bellmanford(node_count,END_ITER);
             print_graph();
             for(i=1;i<=node_count;i++)
             {
