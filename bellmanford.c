@@ -101,7 +101,7 @@ struct graph_link *search_node(int index)
         if(link[i]->index == index)
             return link[i];
     }
-    printf("Error: Link Not Found on searching...Either invalid link information or nodes have not been setup\n");
+    printf("Error: Link Number %d Not Found on searching...Either invalid link information or nodes have not been setup\n",index);
     exit(-1);
 }
 
@@ -129,7 +129,7 @@ int bellmanford(int node_links, int iteration)
         return 2;
 
     struct graph_link *tmp;
-    for(iter=2;iter<=node_links;iter++)
+    for(iter=2;iter<node_links;iter++)
     {
         for(i=1;i<=node_links;i++)
         {
@@ -234,7 +234,7 @@ int main(int argc, char *argv[])
     }
 
 /*  Initializing Nodes */
-    char str[16];
+    char str[60];
     int num=0,node_count = 0;
     while(fgets(str,16,graph) != NULL)
     {
@@ -279,7 +279,7 @@ int main(int argc, char *argv[])
         }
         tmp1 = search_node(num);
 //        print_graph();
-        i++;
+        i+=2;
         j=i;
         num=0;
         int temp=i;
@@ -293,53 +293,96 @@ int main(int argc, char *argv[])
         int num_links = num;
 //        printf("Links->%d\n",num_links);
         int k;
-        if ( num_links <= 7 )
+        for(k=1;k<=num_links;k++)
         {
-            for(k=1;k<=num_links;k++)
+            i+=2;
+            j=i;
+            num=0;
+            temp=i;
+            for(;isblank(str[i])==0;i++);
+            j = i - j - 1;
+            for(i=temp;isblank(str[i])==0;i++)
             {
-                i++;
-                j=i;
-                num=0;
-                temp=i;
-                for(;isblank(str[i])==0;i++);
-                j = i - j - 1;
-                for(i=temp;isblank(str[i])==0;i++)
+                num += (str[i] - 48) * pow(10,j);
+                j--;
+            }
+            tmp1->out_links[k] = search_node(num);
+            i++;
+            j=i;
+            num=0;
+            temp=i;
+            for(;isblank(str[i])==0;i++);
+            j = i - j - 1;
+            for(i=temp;isblank(str[i])==0;i++)
+            {
+                if(!isalpha(str[i]))
                 {
                     num += (str[i] - 48) * pow(10,j);
                     j--;
                 }
-                tmp1->out_links[k] = search_node(num);
-                i++;
-                j=i;
-                num=0;
-                temp=i;
-                for(;isblank(str[i])==0;i++);
-                j = i - j - 1;
-                for(i=temp;isblank(str[i])==0;i++)
+                else
                 {
-                    if(!isalpha(str[i]))
-                    {
-                        num += (str[i] - 48) * pow(10,j);
-                        j--;
-                    }
-                    else
-                    {
-                        num += (str[i] - 64 + 9) * pow(16,j);
-                        j--;
-                    }
+                    num += (str[i] - 64 + 9) * pow(16,j);
+                    j--;
                 }
-                if(num > 127)
-                {
-                    num -= 256;
-                }
-                tmp1->out_weights[k] = num;
-//                print_graph();
             }
+            if(num > 127)
+            {
+                num -= 256;
+            }
+            tmp1->out_weights[k] = num;
+            if(k == 7 || k == 15 || k == 23 || k == 31 || k == 39 || k == 47 || k == 55 || k == 63 || k == 71 || k == 79 || k == 86 || k == 94 || k == 102 || k == 110 || k == 118 || k == 126)
+            {
+                //for(;str[i]!='\n';i++);
+                while(k < num_links)
+                {
+                    while(fgets(str,60,graph) != NULL && k <= num_links)
+                    {
+                        k++;
+                        i=0;
+                        j=i;
+                        num=0;
+                        temp=i;
+                        for(;isblank(str[i])==0;i++);
+                        j = i - j - 1;
+                        for(i=temp;isblank(str[i])==0;i++)
+                        {
+                            num += (str[i] - 48) * pow(10,j);
+                            j--;
+                        }
+                        tmp1->out_links[k] = search_node(num);
+                        i++;
+                        j=i;
+                        num=0;
+                        temp=i;
+                        for(;isblank(str[i])==0;i++);
+                        j = i - j - 1;
+                        for(i=temp;isblank(str[i])==0;i++)
+                        {
+                            if(!isalpha(str[i]))
+                            {
+                                num += (str[i] - 48) * pow(10,j);
+                                j--;
+                            }
+                            else
+                            {
+                                num += (str[i] - 64 + 9) * pow(16,j);
+                                j--;
+                            }
+                        }
+                        if(num > 127)
+                        {
+                            num -= 256;
+                        }
+                        tmp1->out_weights[k] = num;
+                        
+                        k++;
+                    }
+                }
+//            print_graph();
+             }
         }
-        else
-        {
-        }
-        for(;str[i]!='\n';i++);
+        //for(;str[i]!='\n';i++);
     }
 
     int read_source=0;
