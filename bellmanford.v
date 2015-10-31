@@ -56,11 +56,14 @@ always@(posedge clock)
 begin
 	if(reset)
 	begin
+		//Init
 		GMAR1 <= 0;
 		WMWAR <= 0;
 		WMWE <= 0;
 		NumNodes <= 0;
 		NodeCounter <= 0;
+		//Upd_SD
+		IMAR <= 0;
 	end
 end
 
@@ -85,11 +88,38 @@ begin
     		    		WMWDR[127:107] <= 21'b100000000111111110000;
     		    		NodeCounter <= NodeCounter - 8'b00000001;
     		    	end
+			else
+				WMWE <= 1'b0;
     		    end
     		Upd_SD:
     		    begin
-				
-    		    end
+			if(NodeCounter == 0 && WMWDR[107] == 1'b0)
+			begin
+				NodeCounter <= 2'b10;
+				WMWE <= 1'b0;
+    		    		WMWDR[127:107] <= 21'b100000000111111110010; //Repeated to facilitate state transition using only combinational circuits
+			end
+			else if (NodeCounter == 2'b10)
+			begin
+				WMWAR <= IMDR;
+    		    		WMWDR[127:107] <= 21'b100000000111111110010;
+				WMWE <= 1'b1;
+				NodeCounter = NodeCounter - 1'b1;
+			end
+			else if (NodeCounter == 2'b01)
+			begin
+				WMWAR <= IMDR;
+    		    		WMWDR[127:107] <= 21'b100000000111111110001;
+				WMWE <= 1'b1;
+				NodeCounter = NodeCounter - 1'b1;
+			end
+			else
+			begin
+				WMWE <= 1'b0;
+				WMWDR <= 0;
+				WMWAR <= 0;
+			end
+		    end
     		BFA:
     		    begin
     		    end
@@ -104,6 +134,7 @@ begin
 	end
 end
 
+/*State Transition Control*/
 always@(*)
 begin
 	if(reset)
@@ -117,7 +148,10 @@ begin
 	end
 	else if(current_state == Upd_SD)
 	begin
-
+		if(WMWDR[108] == 1'b1 )
+			next_state = Upd_SD;
+		else if (WMWDR[107] == 1'b1)
+			next_state = BFA;
 	end
 end
 
