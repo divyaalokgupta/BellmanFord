@@ -39,14 +39,14 @@ SRAM_2R1W WorkingMemory(.clock(clock), .WE(WMWE), .WriteAddress(WMWAR), .ReadAdd
 
 initial
 	begin
-	$readmemh("Graph_large_woNeg.mem",GraphMemory.Register);
-	$readmemh("input_large.mem",InputMemory.Register);
+	$readmemh("Graph_small_woNeg.mem",GraphMemory.Register);
+	$readmemh("input_small.mem",InputMemory.Register);
 	#0 reset = 1; clock = 0;
 	#6 reset = 0;
 	#2000 $finish;
 	end
 
 always
-	#5 	clock = ~clock;
+	#2.5 	clock = ~clock;
 
 endmodule

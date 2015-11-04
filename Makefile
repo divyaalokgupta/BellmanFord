@@ -1,4 +1,4 @@
-etup:
+setup:
 	@vlib mti_lib
 	@vlib work
 	@touch $@
@@ -13,7 +13,7 @@ bellmanford: setup
 	@vlog bellmanfordtest.v
 
 sim:
-	vsim -i -novopt bellmanfordtest &
+	vsim -i -novopt -do bellmanford.do bellmanfordtest &
 
 clean:
 	rm -f bellmanford.out setup
