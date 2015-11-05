@@ -43,10 +43,10 @@ initial
 	$readmemh("input_small.mem",InputMemory.Register);
 	#0 reset = 1; clock = 0;
 	#6 reset = 0;
-	#2000 $finish;
+	#4000 $finish;
 	end
 
 always
-	#2.5 	clock = ~clock;
+	#5 	clock = ~clock;
 
 endmodule
