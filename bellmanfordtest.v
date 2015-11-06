@@ -23,9 +23,9 @@ wire WMWE;
 
 //Output Memory Ports
 wire [12:0] OMAR;
-wire [127:0] OMDR;
+wire [7:0] OMDR;
 wire [12:0] OMWAR;
-wire [127:0] OMWDR;
+wire [7:0] OMWDR;
 wire OMWE;
 
 //Instantiating BellmanFord Module

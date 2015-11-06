@@ -14,11 +14,11 @@
 module SRAM_1R1W (clock, WE, WriteAddress, ReadAddress, WriteBus, ReadBus);
 input  clock, WE; 
 input  [12:0] WriteAddress, ReadAddress; // Change as you change size of SRAM
-input  [127:0] WriteBus;
-output [127:0] ReadBus;
+input  [7:0] WriteBus;
+output [7:0] ReadBus;
 
-reg [127:0] Register [0:8191];   // 16384 words, with each 16 bits wide
-reg [127:0] ReadBus;
+reg [7:0] Register [0:8191];   // 16384 words, with each 16 bits wide
+reg [7:0] ReadBus;
 
 // provide one write enable line per register
 reg [8191:0] WElines;

@@ -23,9 +23,9 @@ output reg WMWE;
 
 //Output Memory Ports
 output reg [12:0] OMAR;
-output reg [127:0] OMDR;
+output reg [7:0] OMDR;
 output reg [12:0] OMWAR;
-output wire [127:0] OMWDR;
+output reg [7:0] OMWDR;
 output reg OMWE;
 
 //State encoding
@@ -45,8 +45,13 @@ BFA4    = 4'b1011,
 BFA5    = 4'b1100,
 BFA_Stall4 = 4'b1101,
 BFA6    = 4'b1110,
-OP      = 5'b10000,
-Refresh = 5'b10001;
+OP1      = 5'b10000,
+OP_Stall1 = 5'b10001,
+OP2      = 5'b10010,
+OP3      = 5'b10011,
+OP4      = 5'b10100,
+OP_Stall2 = 5'b10101,
+Refresh = 5'b10110;
 
 /*Boundary Flops */
 reg [127:0] GMDR1_reg;
@@ -78,7 +83,7 @@ reg BFA_flag;
 reg signed [7:0] DistU;
 reg New_U_Node;
 
-reg [3:0] /* synopsys enum states */ current_state, next_state;
+reg [4:0] /* synopsys enum states */ current_state, next_state;
 
 /* State Transition */
 always@(posedge clock)
@@ -97,6 +102,7 @@ begin
                     GMAR1 <= 0;
                     IMAR <= 0;
                     WMWAR <= 0;
+                    OMWAR <= 0;
                 end
             Init1:
                 begin
@@ -157,6 +163,7 @@ begin
                                 Ureg <= IMDR_reg;
                                 WMAR1 <= IMDR_reg;                                             //Get source node data from WM
                                 GMAR1 <= IMDR_reg - 1'b1;                                      //Look for source node's daughters
+                                IMAR <= IMAR + 1'b1;
                             end
                         1:
                             begin
@@ -165,7 +172,7 @@ begin
                                         Ureg <= GMDR1_reg[71:64];
                                         WMAR1 <= GMDR1_reg[71:64];                               //Get new U node's data from WM
                                         NodeCounter <= NodeCounter - 1'b1;
-                                        New_U_Node <= 1'b0;
+                                        GMAR2 <= GMDR1_reg[12:0];
                                     end
                                 else
                                     begin
@@ -180,6 +187,7 @@ begin
                 end
             BFA3:
                 begin
+                    GMAR1 <= 0;
                     if(New_U_Node == 0)
                         GMAR2 <= GMDR1_reg[12:0];
                 end
@@ -213,7 +221,6 @@ begin
             BFA5:
                 begin
                     WMWE <= 1'b0;
-                    New_U_Node <= 1'b0;
                     if(LinkCounter == 0)
                     begin
                        GMAR2 <= GMAR2 + 1'b1;
@@ -270,10 +277,10 @@ begin
                    if(WMDR2_reg[126:119] > NewWeight || WMDR2_reg[127] == 1)
                     begin
                         casex(Sub)
-                            0:  begin 
+                            0:  begin
                                     WMWAR <= Vreg[1]; 
-                                end 
-                            1:  begin 
+                                end
+                            1:  begin
                                     WMWAR <= Vreg[2]; 
                                 end
                             2:  begin 
@@ -304,6 +311,41 @@ begin
                    LinkCounter <= LinkCounter - 1'b1;
                    Sub <= Sub + 1'b1;
                 end
+            OP1:
+                begin
+                    WMAR2 <= IMDR_reg;
+                end
+            OP_Stall1:
+                begin
+                end
+            OP2:
+                begin
+                    OMWDR <= WMDR2_reg[126:119];
+                    OMWE <= 1'b1;
+                    WMAR2 <= WMDR2_reg[118:111];
+                end
+            OP3:
+                begin
+                    OMWAR <= OMWAR + 1'b1;
+                    OMWDR <= IMDR_reg;
+                    OMWE <= 1'b1;
+                end
+            OP4:
+                begin
+                    OMWDR <= WMDR2_reg[118:111];
+                    OMWE <= 1'b1;
+                    OMWAR <= OMWAR + 1'b1;
+                    WMAR2 <= WMDR2_reg[118:111];
+                end
+            OP_Stall2:
+                begin
+                    OMWE <= 1'b0;
+                end
+            Refresh:
+                begin
+                    OMWE <= 1'b0;
+                    
+                end
         endcase
 	end
 end
@@ -331,13 +373,23 @@ begin
     else if(current_state == BFA_Stall1)
             next_state = BFA2;
 	else if(current_state == BFA2)
+    begin
+        if(New_U_Node == 1)
+            next_state = BFA_Stall3;
+        else
             next_state = BFA_Stall2;
+    end
 	else if(current_state == BFA_Stall2)
             next_state = BFA3;
 	else if(current_state == BFA3)
             next_state = BFA_Stall3;
 	else if(current_state == BFA_Stall3)
+    begin
+        if(NodeCounter == 1)
+            next_state = OP1;
+        else
             next_state = BFA4;
+    end
 	else if(current_state == BFA4)
             next_state = BFA5;
 	else if(current_state == BFA5)
@@ -351,9 +403,30 @@ begin
             next_state = BFA6;
 	else if(current_state == BFA6)
             next_state = BFA5;
+    else if(current_state == OP1)
+            next_state = OP_Stall1;
+    else if(current_state == OP_Stall1)
+            next_state = OP2;
+    else if(current_state == OP2)
+            next_state = OP3;
+    else if(current_state == OP3)
+            next_state = OP4;
+    else if(current_state == OP4)
+        begin
+            if(WMDR2_reg[108] == 1'b1)
+                next_state = Refresh;
+            else
+                next_state = OP_Stall2;
+        end
+    else if(current_state == OP_Stall2)
+            next_state = OP4;
+    else if(current_state == Refresh)
+        begin
+            if(IMDR_reg != 0)
+            next_state = Upd_S;
+        end
 end
 endmodule
 /* Start every iteration with node whose infinite bit is zero ...so need to skip over nodes whose infinite bit is high*/
 /* Early Termination Condition using single flop OR */
 /* check BFA with negative edge weights */
-/* Start BFA with source */
