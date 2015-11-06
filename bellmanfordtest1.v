@@ -23,10 +23,11 @@ wire WMWE;
 
 //Output Memory Ports
 wire [12:0] OMAR;
-wire [7:0] OMDR;
+wire [15:0] OMDR;
 wire [12:0] OMWAR;
-wire [7:0] OMWDR;
+wire [15:0] OMWDR;
 wire OMWE;
+integer out;
 
 //Instantiating BellmanFord Module
 bellmanford BellmanFord(reset, clock, GMAR1, GMDR1, GMAR2, GMDR2, IMAR, IMDR, WMAR1, WMAR2, WMDR1, WMDR2, WMWDR, WMWAR, WMWE, OMAR, OMDR, OMWAR, OMWDR, OMWE);
@@ -43,7 +44,11 @@ initial
 	$readmemh("input_small.mem",InputMemory.Register);
 	#0 reset = 1; clock = 0;
 	#6 reset = 0;
-	#4000 $finish;
+	#6519 $writememh("MyOutput_small_woNeg.mem",OutputMemory.Register);
+//	out = $fopen("./Results_small_graph_woNeg.dat","w");
+//    $fwrite(out,"%p",OutputMemory.Register);
+//    $fclose(out);
+    #6520 $finish;
 	end
 
 always

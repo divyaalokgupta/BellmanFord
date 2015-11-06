@@ -1,3 +1,6 @@
+vlog bellmanford.v
+vlog bellmanfordtest.v
+
 radix hex
 add wave {sim:/bellmanfordtest/BellmanFord/clock}
 add wave {sim:/bellmanfordtest/BellmanFord/reset}
@@ -39,9 +42,7 @@ add wave {sim:/bellmanfordtest/BellmanFord/Wreg[7]}
 add wave {sim:/bellmanfordtest/BellmanFord/OMWDR}
 add wave {sim:/bellmanfordtest/BellmanFord/OMWAR}
 add wave {sim:/bellmanfordtest/BellmanFord/OMWE}
-add wave {sim:/bellmanfordtest/BellmanFord/IMDR}
+add wave {sim:/bellmanfordtest/BellmanFord/IMDR_reg}
 add wave {sim:/bellmanfordtest/BellmanFord/IMAR}
 
-vlog bellmanfordtest.v
-vlog bellmanford.v
-run 900
+run 6520

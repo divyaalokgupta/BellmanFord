@@ -23,9 +23,9 @@ output reg WMWE;
 
 //Output Memory Ports
 output reg [12:0] OMAR;
-output reg [7:0] OMDR;
+output reg [15:0] OMDR;
 output reg [12:0] OMWAR;
-output reg [7:0] OMWDR;
+output reg [15:0] OMWDR;
 output reg OMWE;
 
 //State encoding
@@ -33,18 +33,19 @@ parameter [4:0] // synopsys enum states
 Init    = 4'b0000,
 Init1   = 4'b0001,
 Init2   = 4'b0010,
-Upd_S   = 4'b0011,
-Upd_D   = 4'b0100, 
-BFA1    = 4'b0101,
-BFA_Stall1 = 4'b0110,
-BFA2    = 4'b0111,
-BFA_Stall2    = 4'b1000,
-BFA3    = 4'b1001,
-BFA_Stall3 = 4'b1010,
-BFA4    = 4'b1011,
-BFA5    = 4'b1100,
-BFA_Stall4 = 4'b1101,
-BFA6    = 4'b1110,
+Init3   = 4'b0011,
+Upd_S   = 4'b0100,
+Upd_D   = 4'b0101, 
+BFA1    = 4'b0110,
+BFA_Stall1 = 4'b0111,
+BFA2    = 4'b1000,
+BFA_Stall2    = 4'b1001,
+BFA3    = 4'b1010,
+BFA_Stall3 = 4'b1011,
+BFA4    = 4'b1100,
+BFA5    = 4'b1101,
+BFA_Stall4 = 4'b1110,
+BFA6    = 4'b1111,
 OP1     = 5'b10000,
 OP_Stall1 = 5'b10001,
 OP2     = 5'b10010,
@@ -53,7 +54,8 @@ OP4     = 5'b10100,
 OP_Stall2 = 5'b10101,
 Refresh1 = 5'b10110,
 Refresh2 = 5'b10111,
-End = 5'b11000;
+End1 = 5'b11000,
+End2 = 5'b11001;
 
 /*Boundary Flops */
 reg [127:0] GMDR1_reg;
@@ -104,7 +106,7 @@ begin
                     GMAR1 <= 0;
                     IMAR <= 0;
                     WMWAR <= 0;
-                    OMWAR <= 0;
+                    OMWAR <= 13'h1fff;
                 end
             Init1:
                 begin
@@ -124,9 +126,13 @@ begin
                         begin
                             WMWE <= 1'b0;
                         end
-                    if(NodeCounter == 0)
-                        IMAR <= IMAR + 1'b1;
                 end
+            Init3:
+                begin
+                     IMAR <= IMAR + 1'b1;
+                     OMWE <= 1'b0;
+                end
+
     		Upd_S:
                 begin
 				    WMWAR <= IMDR_reg;
@@ -150,7 +156,7 @@ begin
                 end
             BFA1:
                 begin
-                    IMAR <= 0;                                              //Look for 1st pair of source and destination pairs
+                    IMAR <= IMAR - 1'b1;                                              //Look for 1st pair of source and destination pairs
                     WMWE <= 1'b0;
                     New_U_Node <= 0;
                 end
@@ -322,6 +328,7 @@ begin
                 end
             OP2:
                 begin
+                    OMWAR <= OMWAR + 1'b1;
                     OMWDR <= WMDR2_reg[126:119];
                     OMWE <= 1'b1;
                     WMAR2 <= WMDR2_reg[118:111];
@@ -331,6 +338,7 @@ begin
                     OMWAR <= OMWAR + 1'b1;
                     OMWDR <= IMDR_reg;
                     OMWE <= 1'b1;
+                    IMAR <= IMAR + 1'b1;
                 end
             OP4:
                 begin
@@ -342,6 +350,22 @@ begin
             OP_Stall2:
                 begin
                     OMWE <= 1'b0;
+                end
+            End1:
+                begin
+                    if(IMDR_reg == 8'hff)
+                    begin
+                        NodeCounter <= NumNodes;
+                        OMWDR <= 16'hFFFF;
+                        OMWE <= 1'b1;
+                        OMWAR <= OMWAR + 1'b1;
+                    end
+                    else
+                    begin
+                        OMWDR <= 8'h0;
+                        OMWE <= 1'b1;
+                        OMWAR <= OMWAR + 1'b1;
+                    end
                 end
             Refresh1:
                 begin
@@ -357,8 +381,10 @@ begin
                     WMWDR[127:107] <= 21'b100000000111111110000;
                     WMWE <= 1'b1;
                 end
-            End:
+            End2:
                 begin
+                    OMWE <= 1'b0;
+                    WMWE <= 1'b0;
                 end
         endcase
 	end
@@ -376,8 +402,10 @@ begin
     else if(current_state == Init2)
 	begin
 		if (NodeCounter == 0)
-			next_state = Upd_S;
+			next_state = Init3;
 	end
+	else if(current_state == Init3)
+			next_state = Upd_S;
 	else if(current_state == Upd_S)
 			next_state = Upd_D;
     else if(current_state == Upd_D)
@@ -428,7 +456,7 @@ begin
     else if(current_state == OP4)
         begin
             if(WMDR2_reg[108] == 1'b1)
-                next_state = Refresh1;
+                next_state = End1;
             else
                 next_state = OP_Stall2;
         end
@@ -439,16 +467,16 @@ begin
     else if(current_state == Refresh2)
         begin
             if(WMWAR == 0)
-                next_state = End;
+                next_state = Init3;
             else
                 next_state = Refresh2;
         end
-    else if(current_state == End)
+    else if(current_state == End1)
         begin
             if(IMDR_reg == 8'hFF)
-                next_state = Upd_S;
+                next_state = Refresh1;
             else
-                next_state = End;
+                next_state = End2;
         end
 end
 endmodule
