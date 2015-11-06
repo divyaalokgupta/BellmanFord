@@ -10,10 +10,14 @@ bellmanford: setup
 	@vlog sram_2R1W.updated.v
 	@vlog sram_2R.updated.v
 	@vlog bellmanford.v
-	@vlog bellmanfordtest.v
+	@vlog bellmanfordtest1.v
+	@vlog bellmanfordtest2.v
 
-sim:
-	vsim -i -novopt -do bellmanford.do bellmanfordtest &
+sim1:
+	vsim -batch -novopt -do bellmanfordtest1.do bellmanfordtest1
+
+sim2:
+	vsim -batch -novopt -do bellmanfordtest2.do bellmanfordtest2
 
 clean:
 	rm -f bellmanford.out setup

@@ -1,4 +1,4 @@
-module bellmanford (reset, clock, GMAR1, GMDR1, GMAR2, GMDR2, IMAR, IMDR, WMAR1, WMAR2, WMDR1, WMDR2, WMWDR, WMWAR, WMWE, OMAR, OMDR, OMWAR, OMWDR, OMWE);
+module bellmanford (reset, clock, GMAR1, GMDR1, GMAR2, GMDR2, IMAR, IMDR, WMAR1, WMAR2, WMDR1, WMDR2, WMWDR, WMWAR, WMWE, OMAR, OMDR, OMWAR, OMWDR, OMWE, NegCycle);
 
 input clock,reset;
 
@@ -28,6 +28,9 @@ output reg [12:0] OMWAR;
 output reg [15:0] OMWDR;
 output reg OMWE;
 
+//Output Port
+output reg NegCycle;
+
 //State encoding
 parameter [4:0] // synopsys enum states
 Init    = 4'b0000,
@@ -55,7 +58,8 @@ OP_Stall2 = 5'b10101,
 Refresh1 = 5'b10110,
 Refresh2 = 5'b10111,
 End1 = 5'b11000,
-End2 = 5'b11001;
+End2 = 5'b11001,
+End3 = 5'b11010;
 
 /*Boundary Flops */
 reg [127:0] GMDR1_reg;
@@ -86,6 +90,7 @@ reg [7:0] Sub;
 reg BFA_flag;
 reg signed [7:0] DistU;
 reg New_U_Node;
+reg NegativeCycleCheck;
 
 reg [4:0] /* synopsys enum states */ current_state, next_state;
 
@@ -132,7 +137,6 @@ begin
                      IMAR <= IMAR + 1'b1;
                      OMWE <= 1'b0;
                 end
-
     		Upd_S:
                 begin
 				    WMWAR <= IMDR_reg;
@@ -159,6 +163,7 @@ begin
                     IMAR <= IMAR - 1'b1;                                              //Look for 1st pair of source and destination pairs
                     WMWE <= 1'b0;
                     New_U_Node <= 0;
+                    NegativeCycleCheck <= 0;
                 end
             BFA_Stall1:
                 begin
@@ -201,6 +206,7 @@ begin
                 end
             BFA_Stall3:
                 begin
+                    NegativeCycleCheck <= 1'b0;
                 end
             BFA4:
                 begin
@@ -282,8 +288,9 @@ begin
                 end
             BFA6:
                 begin
-                   if(WMDR2_reg[126:119] > NewWeight || WMDR2_reg[127] == 1)
+                   if($signed(WMDR2_reg[126:119]) > NewWeight || WMDR2_reg[127] == 1)
                     begin
+                        NegativeCycleCheck <= 1'b1;
                         casex(Sub)
                             0:  begin
                                     WMWAR <= Vreg[1]; 
@@ -316,6 +323,7 @@ begin
                         WMWDR[110:107] <= WMDR2_reg[110:107];
                         WMWE <= 1'b1;
                    end
+                else
                    LinkCounter <= LinkCounter - 1'b1;
                    Sub <= Sub + 1'b1;
                 end
@@ -386,6 +394,10 @@ begin
                     OMWE <= 1'b0;
                     WMWE <= 1'b0;
                 end
+            End3:
+                begin
+                    NegCycle <= 1'b1; 
+                end
         endcase
 	end
 end
@@ -427,8 +439,14 @@ begin
             next_state = BFA_Stall3;
 	else if(current_state == BFA_Stall3)
     begin
-        if(NodeCounter == 1)
+        if((NodeCounter == 8'h01) && (NegativeCycleCheck == 1'b0))
             next_state = OP1;
+        else if((NodeCounter == 8'h01) && (NegativeCycleCheck == 1'b1))
+            next_state = BFA4;
+        else if((NodeCounter == 8'h00) && (NegativeCycleCheck == 1'b0))
+            next_state = OP1;
+        else if((NodeCounter == 8'h00) && (NegativeCycleCheck == 1'b1))
+            next_state = End3;
         else
             next_state = BFA4;
     end
@@ -483,3 +501,4 @@ endmodule
 /* Start every iteration with node whose infinite bit is zero ...so need to skip over nodes whose infinite bit is high*/
 /* Early Termination Condition using single flop OR */
 /* check BFA with negative edge weights */
+/* New_U_Node is actually the First_Node */

@@ -1,4 +1,4 @@
-module bellmanfordtest ();
+module bellmanfordtest1 ();
 
 reg clock, reset;
 
@@ -27,10 +27,12 @@ wire [15:0] OMDR;
 wire [12:0] OMWAR;
 wire [15:0] OMWDR;
 wire OMWE;
+wire NegCycle;
+
 integer out;
 
 //Instantiating BellmanFord Module
-bellmanford BellmanFord(reset, clock, GMAR1, GMDR1, GMAR2, GMDR2, IMAR, IMDR, WMAR1, WMAR2, WMDR1, WMDR2, WMWDR, WMWAR, WMWE, OMAR, OMDR, OMWAR, OMWDR, OMWE);
+bellmanford BellmanFord(reset, clock, GMAR1, GMDR1, GMAR2, GMDR2, IMAR, IMDR, WMAR1, WMAR2, WMDR1, WMDR2, WMWDR, WMWAR, WMWE, OMAR, OMDR, OMWAR, OMWDR, OMWE, NegCycle);
 
 //Instantiating Memories
 SRAM_2R GraphMemory(.ReadAddress1(GMAR1), .ReadAddress2(GMAR2), .ReadBus1(GMDR1), .ReadBus2(GMDR2));
@@ -44,11 +46,8 @@ initial
 	$readmemh("input_small.mem",InputMemory.Register);
 	#0 reset = 1; clock = 0;
 	#6 reset = 0;
-	#6519 $writememh("MyOutput_small_woNeg.mem",OutputMemory.Register);
-//	out = $fopen("./Results_small_graph_woNeg.dat","w");
-//    $fwrite(out,"%p",OutputMemory.Register);
-//    $fclose(out);
-    #6520 $finish;
+	#7200 $writememh("MyOutput_small_woNeg.mem",OutputMemory.Register);
+    $finish;
 	end
 
 always
