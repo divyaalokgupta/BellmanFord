@@ -45,13 +45,15 @@ BFA4    = 4'b1011,
 BFA5    = 4'b1100,
 BFA_Stall4 = 4'b1101,
 BFA6    = 4'b1110,
-OP1      = 5'b10000,
+OP1     = 5'b10000,
 OP_Stall1 = 5'b10001,
-OP2      = 5'b10010,
-OP3      = 5'b10011,
-OP4      = 5'b10100,
+OP2     = 5'b10010,
+OP3     = 5'b10011,
+OP4     = 5'b10100,
 OP_Stall2 = 5'b10101,
-Refresh = 5'b10110;
+Refresh1 = 5'b10110,
+Refresh2 = 5'b10111,
+End = 5'b11000;
 
 /*Boundary Flops */
 reg [127:0] GMDR1_reg;
@@ -332,7 +334,7 @@ begin
                 end
             OP4:
                 begin
-                    OMWDR <= WMDR2_reg[118:111];
+                    OMWDR <= WMAR2;
                     OMWE <= 1'b1;
                     OMWAR <= OMWAR + 1'b1;
                     WMAR2 <= WMDR2_reg[118:111];
@@ -341,10 +343,22 @@ begin
                 begin
                     OMWE <= 1'b0;
                 end
-            Refresh:
+            Refresh1:
                 begin
                     OMWE <= 1'b0;
-                    
+                    WMWAR <= NumNodes;
+                    WMWDR[127:107] <= 21'b100000000111111110000;
+                    WMWE <= 1'b1;
+                    IMAR <= IMAR + 1'b1;
+                end
+            Refresh2:
+                begin
+                    WMWAR <= WMWAR - 1'b1;
+                    WMWDR[127:107] <= 21'b100000000111111110000;
+                    WMWE <= 1'b1;
+                end
+            End:
+                begin
                 end
         endcase
 	end
@@ -414,16 +428,27 @@ begin
     else if(current_state == OP4)
         begin
             if(WMDR2_reg[108] == 1'b1)
-                next_state = Refresh;
+                next_state = Refresh1;
             else
                 next_state = OP_Stall2;
         end
     else if(current_state == OP_Stall2)
             next_state = OP4;
-    else if(current_state == Refresh)
+    else if(current_state == Refresh1)
+        next_state = Refresh2;
+    else if(current_state == Refresh2)
         begin
-            if(IMDR_reg != 0)
-            next_state = Upd_S;
+            if(WMWAR == 0)
+                next_state = End;
+            else
+                next_state = Refresh2;
+        end
+    else if(current_state == End)
+        begin
+            if(IMDR_reg == 8'hFF)
+                next_state = Upd_S;
+            else
+                next_state = End;
         end
 end
 endmodule

@@ -39,6 +39,8 @@ add wave {sim:/bellmanfordtest/BellmanFord/Wreg[7]}
 add wave {sim:/bellmanfordtest/BellmanFord/OMWDR}
 add wave {sim:/bellmanfordtest/BellmanFord/OMWAR}
 add wave {sim:/bellmanfordtest/BellmanFord/OMWE}
+add wave {sim:/bellmanfordtest/BellmanFord/IMDR}
+add wave {sim:/bellmanfordtest/BellmanFord/IMAR}
 
 vlog bellmanfordtest.v
 vlog bellmanford.v
