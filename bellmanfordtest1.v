@@ -46,8 +46,8 @@ initial
 	$readmemh("input_small.mem",InputMemory.Register);
 	#0 reset = 1; clock = 0;
 	#6 reset = 0;
-	#3500 $writememh("MyOutput_small_woNeg.mem",OutputMemory.Register);
-    $finish;
+	#6999 $writememh("MyOutput_small_woNeg.mem",OutputMemory.Register);
+    #7000 $finish;
 	end
 
 always

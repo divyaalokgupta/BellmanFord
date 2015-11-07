@@ -89,7 +89,7 @@ reg signed [7:0] NewWeight;
 reg [7:0] Sub;
 reg BFA_flag;
 reg signed [7:0] DistU;
-reg New_U_Node;
+reg First_Node;
 reg NegativeCycleCheck;
 
 reg [4:0] /* synopsys enum states */ current_state, next_state;
@@ -162,7 +162,7 @@ begin
                 begin
                     IMAR <= IMAR - 1'b1;                                              //Look for 1st pair of source and destination pairs
                     WMWE <= 1'b0;
-                    New_U_Node <= 0;
+                    First_Node <= 0;
                     NegativeCycleCheck <= 0;
                 end
             BFA_Stall1:
@@ -170,7 +170,7 @@ begin
                 end
             BFA2:
                 begin
-                    casex(New_U_Node)
+                    casex(First_Node)
                         0:
                             begin
                                 Ureg <= IMDR_reg;
@@ -203,7 +203,7 @@ begin
             BFA3:
                 begin
                     GMAR1 <= 0;
-                    if(New_U_Node == 0)
+                    if(First_Node == 0)
                         GMAR2 <= GMDR1_reg[12:0];
                 end
             BFA_Stall3:
@@ -239,7 +239,7 @@ begin
                     if(LinkCounter == 0)
                     begin
                        GMAR2 <= GMAR2 + 1'b1;
-                       New_U_Node <= 1'b1;
+                       First_Node <= 1'b1;
                     end
                     case(Sub)
                         0: 
@@ -429,14 +429,13 @@ begin
             next_state = BFA2;
 	else if(current_state == BFA2)
     begin
-        if(New_U_Node == 1)
+        if(First_Node == 1)
         begin
-            next_state = BFA_Stall3;
-            if (NegativeCycleCheck == 1'b0)
+            if ((NegativeCycleCheck == 1'b0) && GMDR2_reg[127:120] == 8'h00 )
                 next_state = OP1;
             else if((NodeCounter == 8'h02) && (NegativeCycleCheck == 1'b1))
                 next_state = BFA_Stall3;
-            else if((NodeCounter == 8'h01) && (NegativeCycleCheck == 1'b0))
+            else if((NodeCounter == 8'h01) && (NegativeCycleCheck == 1'b0) && GMDR2_reg[127:120] == 8'h00)
                 next_state = OP1;
             else if((NodeCounter == 8'h01) && (NegativeCycleCheck == 1'b1))
                 next_state = End3;
@@ -451,7 +450,12 @@ begin
 	else if(current_state == BFA3)
             next_state = BFA_Stall3;
 	else if(current_state == BFA_Stall3)
+    begin
+        if(WMDR1_reg[127] == 1'b1)
+            next_state = BFA5;
+        else
             next_state = BFA4;
+    end
 	else if(current_state == BFA4)
             next_state = BFA5;
 	else if(current_state == BFA5)
@@ -500,7 +504,4 @@ begin
         end
 end
 endmodule
-/* Start every iteration with node whose infinite bit is zero ...so need to skip over nodes whose infinite bit is high*/
-/* Early Termination Condition using single flop OR */
-/* check BFA with negative edge weights */
-/* New_U_Node is actually the First_Node */
+/* Add support for handling large graphs */
