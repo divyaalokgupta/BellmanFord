@@ -9,6 +9,8 @@ add wave {sim:/bellmanfordtest1/BellmanFord/next_state}
 add wave {sim:/bellmanfordtest1/BellmanFord/NodeCounter}
 add wave {sim:/bellmanfordtest1/BellmanFord/NumLinks}
 add wave {sim:/bellmanfordtest1/BellmanFord/LinkCounter}
+add wave {sim:/bellmanfordtest1/BellmanFord/FirstLine}
+add wave {sim:/bellmanfordtest1/BellmanFord/MultiLine}
 add wave {sim:/bellmanfordtest1/BellmanFord/Sub}
 add wave {sim:/bellmanfordtest1/BellmanFord/GMAR1}
 add wave {sim:/bellmanfordtest1/BellmanFord/GMDR1_reg}

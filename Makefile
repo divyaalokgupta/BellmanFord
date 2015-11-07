@@ -13,6 +13,7 @@ bellmanford: setup
 	@vlog bellmanfordtest1.v
 	@vlog bellmanfordtest2.v
 	@vlog bellmanfordtest3.v
+	@vlog bellmanfordtest4.v
 
 sim1: bellmanford
 	vsim -batch -novopt -do bellmanfordtest1.do bellmanfordtest1
@@ -22,6 +23,9 @@ sim2: bellmanford
 
 sim3: bellmanford
 	vsim -batch -novopt -do bellmanfordtest3.do bellmanfordtest3
+
+sim4: bellmanford
+	vsim -batch -novopt -do bellmanfordtest4.do bellmanfordtest4
 
 clean:
 	rm -f bellmanford.out setup

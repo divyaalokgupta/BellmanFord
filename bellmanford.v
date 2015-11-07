@@ -91,6 +91,8 @@ reg BFA_flag;
 reg signed [7:0] DistU;
 reg First_Node;
 reg NegativeCycleCheck;
+reg FirstLine;
+reg MultiLine;
 
 reg [4:0] /* synopsys enum states */ current_state, next_state;
 
@@ -170,6 +172,7 @@ begin
                 end
             BFA2:
                 begin
+                    FirstLine <= 1'b1;
                     casex(First_Node)
                         0:
                             begin
@@ -191,8 +194,8 @@ begin
                                     end
                                 else
                                     begin
-                                        Ureg <= GMDR2_reg[127:120];
-                                        WMAR1 <= GMDR2_reg[127:120];                           //Get new U node's data from WM
+                                            Ureg <= GMDR2_reg[127:120];
+                                            WMAR1 <= GMDR2_reg[127:120];                           //Get new U node's data from WM
                                     end
                             end
                     endcase
@@ -211,26 +214,66 @@ begin
                 end
             BFA4:
                 begin
-                    DistU <= WMDR1_reg[126:119];
-                    NumLinks <= GMDR2_reg[119:112];
-                    if(GMDR2_reg[119:112] < 7)
-                        LinkCounter <= GMDR2_reg[119:112];
-				    Vreg[1] <= GMDR2_reg[111:104];
-				    Wreg[1] <= GMDR2_reg[103:96];
-				    Vreg[2] <= GMDR2_reg[95:88];
-				    Wreg[2] <= GMDR2_reg[87:80];
-				    Vreg[3] <= GMDR2_reg[79:72];
-				    Wreg[3] <= GMDR2_reg[71:64]; 
-				    Vreg[4] <= GMDR2_reg[63:56];
-				    Wreg[4] <= GMDR2_reg[55:48]; 
-				    Vreg[5] <= GMDR2_reg[47:40];
-				    Wreg[5] <= GMDR2_reg[39:32]; 
-				    Vreg[6] <= GMDR2_reg[31:24];
-				    Wreg[6] <= GMDR2_reg[23:16];
-				    Vreg[7] <= GMDR2_reg[15:8];
-				    Wreg[7] <= GMDR2_reg[7:0];
-                    Vreg[8] <= 0;
-                    Wreg[8] <= 0;
+                    if(FirstLine == 1'b1)
+                        begin
+                            DistU <= WMDR1_reg[126:119];
+                            NumLinks <= GMDR2_reg[119:112];
+                            if(GMDR2_reg[119:112] < 7)
+                                begin
+                                    MultiLine <= 1'b0;
+                                    LinkCounter <= GMDR2_reg[119:112];
+                                end
+                            else
+                                begin
+                                    LinkCounter <= 7;
+                                    MultiLine <= 1'b1;
+                                end
+				            Vreg[1] <= GMDR2_reg[111:104];
+				            Wreg[1] <= GMDR2_reg[103:96];
+				            Vreg[2] <= GMDR2_reg[95:88];
+				            Wreg[2] <= GMDR2_reg[87:80];
+				            Vreg[3] <= GMDR2_reg[79:72];
+				            Wreg[3] <= GMDR2_reg[71:64]; 
+				            Vreg[4] <= GMDR2_reg[63:56];
+				            Wreg[4] <= GMDR2_reg[55:48]; 
+				            Vreg[5] <= GMDR2_reg[47:40];
+				            Wreg[5] <= GMDR2_reg[39:32]; 
+				            Vreg[6] <= GMDR2_reg[31:24];
+				            Wreg[6] <= GMDR2_reg[23:16];
+				            Vreg[7] <= GMDR2_reg[15:8];
+				            Wreg[7] <= GMDR2_reg[7:0];
+                            Vreg[8] <= 0;
+                            Wreg[8] <= 0;
+                        end
+                    else
+                        begin
+                            if(NumLinks > 8)
+                                begin
+                                    MultiLine <= 1'b1;
+                                    LinkCounter <= 8;
+                                end
+                            else
+                                begin
+                                    MultiLine <= 1'b0;
+                                    LinkCounter <= NumLinks;
+                                end
+                            Vreg[1] <= GMDR2_reg[127:120];
+                            Wreg[1] <= GMDR2_reg[119:112];
+				            Vreg[2] <= GMDR2_reg[111:104];
+				            Wreg[2] <= GMDR2_reg[103:96];
+				            Vreg[3] <= GMDR2_reg[95:88];
+				            Wreg[3] <= GMDR2_reg[87:80];
+				            Vreg[4] <= GMDR2_reg[79:72];
+				            Wreg[4] <= GMDR2_reg[71:64]; 
+				            Vreg[5] <= GMDR2_reg[63:56];
+				            Wreg[5] <= GMDR2_reg[55:48]; 
+				            Vreg[6] <= GMDR2_reg[47:40];
+				            Wreg[6] <= GMDR2_reg[39:32]; 
+				            Vreg[7] <= GMDR2_reg[31:24];
+				            Wreg[7] <= GMDR2_reg[23:16];
+				            Vreg[8] <= GMDR2_reg[15:8];
+				            Wreg[8] <= GMDR2_reg[7:0];
+                        end
                     Sub <= 0;
                 end
             BFA5:
@@ -238,6 +281,7 @@ begin
                     WMWE <= 1'b0;
                     if(LinkCounter == 0)
                     begin
+                       FirstLine <= 1'b0;
                        GMAR2 <= GMAR2 + 1'b1;
                        First_Node <= 1'b1;
                     end
@@ -324,8 +368,8 @@ begin
                         WMWDR[110:107] <= WMDR2_reg[110:107];
                         WMWE <= 1'b1;
                    end
-                else
                    LinkCounter <= LinkCounter - 1'b1;
+                   NumLinks <= NumLinks - 1'b1;
                    Sub <= Sub + 1'b1;
                 end
             OP1:
@@ -460,8 +504,10 @@ begin
             next_state = BFA5;
 	else if(current_state == BFA5)
     begin
-        if(LinkCounter == 0)
+        if(NumLinks == 0 && LinkCounter == 0)
             next_state = BFA_Stall1;
+        else if (NumLinks != 0 && LinkCounter == 0)
+            next_state = BFA_Stall3;
         else
             next_state = BFA_Stall4;
     end
@@ -505,3 +551,4 @@ begin
 end
 endmodule
 /* Add support for handling large graphs */
+/* Check why LinkCounter is decrementing so late */
