@@ -1,4 +1,4 @@
-module bellmanfordtest1 ();
+module bellmanfordtest2 ();
 
 reg clock, reset;
 
@@ -27,9 +27,10 @@ wire [15:0] OMDR;
 wire [12:0] OMWAR;
 wire [15:0] OMWDR;
 wire OMWE;
-wire NegCycle;
+wire NegCycle; 
 
 integer out;
+
 
 //Instantiating BellmanFord Module
 bellmanford BellmanFord(reset, clock, GMAR1, GMDR1, GMAR2, GMDR2, IMAR, IMDR, WMAR1, WMAR2, WMDR1, WMDR2, WMWDR, WMWAR, WMWE, OMAR, OMDR, OMWAR, OMWDR, OMWE, NegCycle);
@@ -42,12 +43,14 @@ SRAM_2R1W WorkingMemory(.clock(clock), .WE(WMWE), .WriteAddress(WMWAR), .ReadAdd
 
 initial
 	begin
-	$readmemh("Graph_small_woNeg.mem",GraphMemory.Register);
+	$readmemh("Graph_small_wNeg.mem",GraphMemory.Register);
 	$readmemh("input_small.mem",InputMemory.Register);
 	#0 reset = 1; clock = 0;
 	#6 reset = 0;
-	#3500 $writememh("MyOutput_small_woNeg.mem",OutputMemory.Register);
-    $finish;
+    #3300 out = $fopen("./MyOutput_small_wNeg.dat","w");
+    $fwrite(out,"Negative cycle exists");
+    $fclose(out);
+    #6520 $finish;
 	end
 
 always

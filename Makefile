@@ -13,10 +13,10 @@ bellmanford: setup
 	@vlog bellmanfordtest1.v
 	@vlog bellmanfordtest2.v
 
-sim1:
+sim1: bellmanford
 	vsim -batch -novopt -do bellmanfordtest1.do bellmanfordtest1
 
-sim2:
+sim2: bellmanford
 	vsim -batch -novopt -do bellmanfordtest2.do bellmanfordtest2
 
 clean:

@@ -174,6 +174,7 @@ begin
                         0:
                             begin
                                 Ureg <= IMDR_reg;
+                                NegativeCycleCheck <= 1'b1;
                                 WMAR1 <= IMDR_reg;                                             //Get source node data from WM
                                 GMAR1 <= IMDR_reg - 1'b1;                                      //Look for source node's daughters
                                 IMAR <= IMAR + 1'b1;
@@ -182,6 +183,7 @@ begin
                             begin
                                 if(GMDR2_reg[127:120] == 0)
                                     begin
+                                        NegativeCycleCheck <= 1'b0;
                                         Ureg <= GMDR1_reg[71:64];
                                         WMAR1 <= GMDR1_reg[71:64];                               //Get new U node's data from WM
                                         NodeCounter <= NodeCounter - 1'b1;
@@ -206,7 +208,6 @@ begin
                 end
             BFA_Stall3:
                 begin
-                    NegativeCycleCheck <= 1'b0;
                 end
             BFA4:
                 begin
@@ -429,7 +430,19 @@ begin
 	else if(current_state == BFA2)
     begin
         if(New_U_Node == 1)
+        begin
             next_state = BFA_Stall3;
+            if (NegativeCycleCheck == 1'b0)
+                next_state = OP1;
+            else if((NodeCounter == 8'h02) && (NegativeCycleCheck == 1'b1))
+                next_state = BFA_Stall3;
+            else if((NodeCounter == 8'h01) && (NegativeCycleCheck == 1'b0))
+                next_state = OP1;
+            else if((NodeCounter == 8'h01) && (NegativeCycleCheck == 1'b1))
+                next_state = End3;
+            else
+                next_state = BFA_Stall3;
+            end
         else
             next_state = BFA_Stall2;
     end
@@ -438,18 +451,7 @@ begin
 	else if(current_state == BFA3)
             next_state = BFA_Stall3;
 	else if(current_state == BFA_Stall3)
-    begin
-        if((NodeCounter == 8'h01) && (NegativeCycleCheck == 1'b0))
-            next_state = OP1;
-        else if((NodeCounter == 8'h01) && (NegativeCycleCheck == 1'b1))
             next_state = BFA4;
-        else if((NodeCounter == 8'h00) && (NegativeCycleCheck == 1'b0))
-            next_state = OP1;
-        else if((NodeCounter == 8'h00) && (NegativeCycleCheck == 1'b1))
-            next_state = End3;
-        else
-            next_state = BFA4;
-    end
 	else if(current_state == BFA4)
             next_state = BFA5;
 	else if(current_state == BFA5)
