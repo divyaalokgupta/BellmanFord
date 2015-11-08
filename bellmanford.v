@@ -111,6 +111,7 @@ begin
     		Init:
     		    begin
                     GMAR1 <= 0;
+                    GMAR2 <= 0;
                     IMAR <= 0;
                     WMWAR <= 0;
                     OMWAR <= 13'h1fff;
@@ -190,12 +191,19 @@ begin
                                         Ureg <= GMDR1_reg[71:64];
                                         WMAR1 <= GMDR1_reg[71:64];                               //Get new U node's data from WM
                                         NodeCounter <= NodeCounter - 1'b1;
-                                        GMAR2 <= GMDR1_reg[12:0];
+                                        GMAR2 <= GMDR1_reg[71:64] - 1'b1;
                                     end
-                                else
+                                else if(WMDR1_reg[127] == 1'b0)
                                     begin
-                                            Ureg <= GMDR2_reg[127:120];
-                                            WMAR1 <= GMDR2_reg[127:120];                           //Get new U node's data from WM
+                                        Ureg <= WMAR1[7:0];
+                                        GMAR2 <= WMAR1 - 1'b1;                           //Get new U node's data from WM
+                                    end
+                                else if (WMDR1_reg[127] == 1'b1)
+                                    begin
+                                        if(WMAR1[7:0] == NumNodes)
+                                            WMAR1 <= 0;
+                                        else
+                                            WMAR1 <= WMAR1 + 1'b1;
                                     end
                             end
                     endcase
@@ -206,8 +214,10 @@ begin
             BFA3:
                 begin
                     GMAR1 <= 0;
-                    if(First_Node == 0)
+                    if(First_Node == 1'b0)
                         GMAR2 <= GMDR1_reg[12:0];
+                    else if (First_Node == 1'b1 && WMDR1_reg[127] == 1'b0)
+                        GMAR2 <= GMDR2_reg[12:0];
                 end
             BFA_Stall3:
                 begin
@@ -279,16 +289,31 @@ begin
             BFA5:
                 begin
                     WMWE <= 1'b0;
-                    if(LinkCounter == 0)
+                    
+                    if(WMDR1_reg[127] == 1'b1)
+                    begin
+                        NumLinks <= 0;
+                        LinkCounter <= 0;
+                    end
+                    
+                    if (NumLinks == 0)
+                    begin
+                       First_Node <= 1'b1;
+                    end
+
+                    if(LinkCounter == 0 )
                     begin
                        FirstLine <= 1'b0;
                        GMAR2 <= GMAR2 + 1'b1;
-                       First_Node <= 1'b1;
                     end
+
+                    if(NumLinks == 0 && LinkCounter == 0)
+                        WMAR1 <= WMAR1 + 1'b1;
+
                     case(Sub)
                         0: 
                             begin
-                                WMAR2 <= Vreg[1];  
+                                WMAR2 <= Vreg[1];
                                 NewWeight <= DistU + Wreg[1];
                             end
                         1: 
@@ -477,22 +502,31 @@ begin
         begin
             if ((NegativeCycleCheck == 1'b0) && GMDR2_reg[127:120] == 8'h00 )
                 next_state = OP1;
-            else if((NodeCounter == 8'h02) && (NegativeCycleCheck == 1'b1))
-                next_state = BFA_Stall3;
+//            else if((NodeCounter == 8'h02) && (NegativeCycleCheck == 1'b1))
+//                next_state = BFA_Stall3;
             else if((NodeCounter == 8'h01) && (NegativeCycleCheck == 1'b0) && GMDR2_reg[127:120] == 8'h00)
                 next_state = OP1;
             else if((NodeCounter == 8'h01) && (NegativeCycleCheck == 1'b1))
                 next_state = End3;
             else
-                next_state = BFA_Stall3;
+                next_state = BFA_Stall2;
             end
+        else if (WMDR1_reg[127] == 1'b0 && First_Node == 1'b0)
+            next_state = BFA_Stall2;
+        else if (WMDR1_reg[127] == 1'b1)
+            next_state = BFA_Stall1;
         else
             next_state = BFA_Stall2;
     end
 	else if(current_state == BFA_Stall2)
             next_state = BFA3;
 	else if(current_state == BFA3)
+    begin
+        if(WMDR1_reg[127] == 1'b1)
+            next_state = BFA2;
+        else
             next_state = BFA_Stall3;
+    end
 	else if(current_state == BFA_Stall3)
     begin
         if(WMDR1_reg[127] == 1'b1)
@@ -504,7 +538,9 @@ begin
             next_state = BFA5;
 	else if(current_state == BFA5)
     begin
-        if(NumLinks == 0 && LinkCounter == 0)
+        if (WMDR1_reg[127] == 1'b1)
+            next_state = BFA_Stall1;
+        else if(NumLinks == 0 && LinkCounter == 0)
             next_state = BFA_Stall1;
         else if (NumLinks != 0 && LinkCounter == 0)
             next_state = BFA_Stall3;
@@ -550,5 +586,4 @@ begin
         end
 end
 endmodule
-/* Add support for handling large graphs */
-/* Check why LinkCounter is decrementing so late */
+/* Skip U reg if infinite bit is high */
