@@ -46,7 +46,7 @@ initial
 	$readmemh("./test/large/input_large.mem",InputMemory.Register);
 	#0 reset = 1; clock = 0;
 	#6 reset = 0;
-	#20000000 $writememh("./test/large/MyOutput_large_woNeg.mem",OutputMemory.Register);
+	#200000000 $writememh("./test/large/MyOutput_large_woNeg.mem",OutputMemory.Register);
     $finish;
 	end
 
