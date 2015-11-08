@@ -48,4 +48,4 @@ add wave {sim:/bellmanfordtest4/BellmanFord/OMWE}
 add wave {sim:/bellmanfordtest4/BellmanFord/IMDR_reg}
 add wave {sim:/bellmanfordtest4/BellmanFord/IMAR}
 
-#run -all
+run -all

@@ -47,10 +47,14 @@ initial
 	$readmemh("input_small.mem",InputMemory.Register);
 	#0 reset = 1; clock = 0;
 	#6 reset = 0;
-    #3300 out = $fopen("./MyOutput_small_wNeg.dat","w");
-    $fwrite(out,"Negative cycle exists");
-    $fclose(out);
-    #6520 $finish;
+    #3300 if(NegCycle == 1'b1)
+            begin
+                out = $fopen("./MyOutput_small_wNeg.dat","w");
+                $fwrite(out,"Negative cycle exists");
+                $fclose(out);
+            end
+
+    $finish;
 	end
 
 always

@@ -498,7 +498,9 @@ begin
             next_state = BFA2;
 	else if(current_state == BFA2)
     begin
-        if(First_Node == 1)
+        if (WMDR1_reg[127] == 1'b1)
+            next_state = BFA_Stall1;
+        else if(First_Node == 1)
         begin
             if ((NegativeCycleCheck == 1'b0) && GMDR2_reg[127:120] == 8'h00 )
                 next_state = OP1;
