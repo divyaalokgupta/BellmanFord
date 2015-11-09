@@ -21,6 +21,9 @@ bellmanford: setup
 sim1: bellmanford
 	vsim -batch -novopt -logfile sim1.log -do bellmanfordtest1.do bellmanfordtest1
 
+sim1g: bellmanford
+	vsim -i -novopt -logfile sim1.log -do bellmanfordtest1.do bellmanfordtest1 &
+
 sim2: bellmanford
 	vsim -batch -novopt -logfile sim2.log -do bellmanfordtest2.do bellmanfordtest2
 
@@ -38,6 +41,13 @@ sim6: bellmanford
 
 sim7: bellmanford
 	vsim -batch -novopt -logfile sim7.log -do bellmanfordtest7.do bellmanfordtest7
+
+test:
+	@make sim1
+	@make sim2
+	@make sim3
+	@make sim5
+	@make sim6
 
 clean:
 	rm -f bellmanford.out setup MyOutput* ./test/*/MyOutput* *.log

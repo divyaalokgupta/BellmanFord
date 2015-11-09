@@ -116,30 +116,44 @@ begin
                     IMAR <= 0;
                     WMWAR <= 0;
                     OMWAR <= 13'h1fff;
+                    NodeCounter <= 8'h81;
                 end
             Init1:
                 begin
                 end
             Init2:
                 begin
-    		    	NumNodes <= GMDR1_reg[63:0] - 1'b1;
-    		    	NodeCounter <= GMDR1_reg[63:0] - 1'b1; //Will be overwritten in each iteration
-    		        if(NodeCounter != 0)
+                    GMAR1 <= GMAR1 + 1'b1;
+                    if (NodeCounter == 8'h81)
+                        begin
+                            NumNodes <= GMDR1_reg[63:0] - 1'b1;
+                            NodeCounter <= GMDR1_reg[7:0] - 2'b10;
+    		    		    WMWAR <= WMWAR + 1'b1;
+    		    		    WMWE <= 1'b1;
+    		    		    WMWDR[127:107] <= 21'b100000000111111110000;
+                            WMWDR[106:94] <= GMDR1_reg[12:0];
+                        end
+    		        else if(NodeCounter != 0)
     		    	    begin
     		    		    WMWAR <= WMWAR + 1'b1;
     		    		    WMWE <= 1'b1;
     		    		    WMWDR[127:107] <= 21'b100000000111111110000;
+                            WMWDR[106:94] <= GMDR1_reg[12:0];
     		    		    NodeCounter <= NodeCounter - 8'b00000001;
     		    	    end
 			        else
                         begin
                             WMWE <= 1'b0;
+                            GMAR1 <= IMDR_reg - 1'b1;
                         end
                 end
             Init3:
                 begin
+                     NodeCounter <= NumNodes;
                      IMAR <= IMAR + 1'b1;
                      OMWE <= 1'b0;
+                     WMWE <= 1'b0;
+                     GMAR1 <= IMAR + 1'b1;
                 end
     		Upd_S:
                 begin
@@ -149,8 +163,9 @@ begin
                     WMWDR[118:111] = IMDR_reg;
                     WMWDR[110:107] <= 4'b0010;
 				    WMWE <= 1'b1;
-				    WMAR1 <= IMDR_reg;                                      //Get 1st source node data data from Working Memory
+				    WMAR1 <= IMDR_reg;                                      //Get 1st source node data from Working Memory
                     NumLinks <= 0;
+                    WMWDR[106:94] <= GMDR1_reg[12:0];
                 end
             Upd_D:
                 begin
@@ -161,6 +176,7 @@ begin
                     WMWDR[110:107] <= 4'b0001;
 				    WMWE <= 1'b1;
 			    	WMAR2 <= GMDR2_reg[111:104];
+                    WMWDR[106:94] <= GMDR1_reg[12:0];
                 end
             BFA1:
                 begin
@@ -392,6 +408,7 @@ begin
                         WMWDR[126:119] <= NewWeight;
                         WMWDR[118:111] <= Ureg;
                         WMWDR[110:107] <= WMDR2_reg[110:107];
+                        WMWDR[106:94] <= WMDR2_reg[106:94];
                         WMWE <= 1'b1;
                    end
                    LinkCounter <= LinkCounter - 1'b1;
@@ -425,6 +442,7 @@ begin
                     OMWE <= 1'b1;
                     OMWAR <= OMWAR + 1'b1;
                     WMAR2 <= WMDR2_reg[118:111];
+                    WMAR1 <= NumNodes;
                 end
             OP_Stall2:
                 begin
@@ -438,6 +456,7 @@ begin
                         OMWDR <= 16'hFFFF;
                         OMWE <= 1'b1;
                         OMWAR <= OMWAR + 1'b1;
+
                     end
                     else
                     begin
@@ -451,6 +470,7 @@ begin
                     OMWE <= 1'b0;
                     WMWAR <= NumNodes;
                     WMWDR[127:107] <= 21'b100000000111111110000;
+                    WMWDR[106:94] <= WMDR1_reg[104:96];
                     WMWE <= 1'b1;
                     IMAR <= IMAR + 1'b1;
                 end
@@ -487,6 +507,8 @@ begin
 	begin
 		if (NodeCounter == 0)
 			next_state = Init3;
+        else
+            next_state <= Init1;
 	end
 	else if(current_state == Init3)
 			next_state = Upd_S;
@@ -590,4 +612,3 @@ begin
         end
 end
 endmodule
-/* Skip U reg if infinite bit is high */
