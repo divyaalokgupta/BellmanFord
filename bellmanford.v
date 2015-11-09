@@ -1,4 +1,4 @@
-module bellmanford (reset, clock, GMAR1, GMDR1, GMAR2, GMDR2, IMAR, IMDR, WMAR1, WMAR2, WMDR1, WMDR2, WMWDR, WMWAR, WMWE, OMAR, OMDR, OMWAR, OMWDR, OMWE, NegCycle);
+module bellmanford (reset, clock, GMAR1, GMDR1, GMAR2, GMDR2, IMAR, IMDR, WMAR1, WMAR2, WMDR1, WMDR2, WMWDR, WMWAR, WMWE, OMAR, OMDR, OMWAR, OMWDR, OMWE, NegCycle, Finish);
 
 input clock,reset;
 
@@ -30,6 +30,7 @@ output reg OMWE;
 
 //Output Port
 output reg NegCycle;
+output reg Finish;
 
 //State encoding
 parameter [4:0] // synopsys enum states
@@ -463,6 +464,7 @@ begin
                 begin
                     OMWE <= 1'b0;
                     WMWE <= 1'b0;
+                    Finish <= 1'b1; 
                 end
             End3:
                 begin

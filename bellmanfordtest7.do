@@ -1,10 +1,10 @@
 vlog bellmanford.v
 vlog bellmanfordtest7.v
 
-#radix hex
-#add wave {sim:/bellmanfordtest7/BellmanFord/clock}
-#add wave {sim:/bellmanfordtest7/BellmanFord/reset}
-#add wave {sim:/bellmanfordtest7/BellmanFord/current_state}
+radix hex
+add wave {sim:/bellmanfordtest7/BellmanFord/clock}
+add wave {sim:/bellmanfordtest7/BellmanFord/reset}
+add wave {sim:/bellmanfordtest7/BellmanFord/current_state}
 #add wave {sim:/bellmanfordtest7/BellmanFord/next_state}
 #add wave {sim:/bellmanfordtest7/BellmanFord/NodeCounter}
 #add wave {sim:/bellmanfordtest7/BellmanFord/NumLinks}
@@ -42,9 +42,9 @@ vlog bellmanfordtest7.v
 #add wave {sim:/bellmanfordtest7/BellmanFord/Wreg[6]}
 #add wave {sim:/bellmanfordtest7/BellmanFord/Vreg[7]}
 #add wave {sim:/bellmanfordtest7/BellmanFord/Wreg[7]}
-#add wave {sim:/bellmanfordtest7/BellmanFord/OMWDR}
-#add wave {sim:/bellmanfordtest7/BellmanFord/OMWAR}
-#add wave {sim:/bellmanfordtest7/BellmanFord/OMWE}
+add wave {sim:/bellmanfordtest7/BellmanFord/OMWDR}
+add wave {sim:/bellmanfordtest7/BellmanFord/OMWAR}
+add wave {sim:/bellmanfordtest7/BellmanFord/OMWE}
 #add wave {sim:/bellmanfordtest7/BellmanFord/IMDR_reg}
 #add wave {sim:/bellmanfordtest7/BellmanFord/IMAR}
 

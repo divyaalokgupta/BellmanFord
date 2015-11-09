@@ -27,13 +27,13 @@ wire [15:0] OMDR;
 wire [12:0] OMWAR;
 wire [15:0] OMWDR;
 wire OMWE;
-wire NegCycle; 
+wire NegCycle;
+wire Finish;
 
 integer out;
 
-
 //Instantiating BellmanFord Module
-bellmanford BellmanFord(reset, clock, GMAR1, GMDR1, GMAR2, GMDR2, IMAR, IMDR, WMAR1, WMAR2, WMDR1, WMDR2, WMWDR, WMWAR, WMWE, OMAR, OMDR, OMWAR, OMWDR, OMWE, NegCycle);
+bellmanford BellmanFord(reset, clock, GMAR1, GMDR1, GMAR2, GMDR2, IMAR, IMDR, WMAR1, WMAR2, WMDR1, WMDR2, WMWDR, WMWAR, WMWE, OMAR, OMDR, OMWAR, OMWDR, OMWE, NegCycle, Finish);
 
 //Instantiating Memories
 SRAM_2R GraphMemory(.ReadAddress1(GMAR1), .ReadAddress2(GMAR2), .ReadBus1(GMDR1), .ReadBus2(GMDR2));
@@ -41,15 +41,36 @@ SRAM_1R1W OutputMemory (.clock(clock), .WE(OMWE), .WriteAddress(OMWAR), .ReadAdd
 SRAM_1R InputMemory(.ReadAddress(IMAR), .ReadBus(IMDR));
 SRAM_2R1W WorkingMemory(.clock(clock), .WE(WMWE), .WriteAddress(WMWAR), .ReadAddress1(WMAR1), .ReadAddress2(WMAR2), .WriteBus(WMWDR), .ReadBus1(WMDR1), .ReadBus2(WMDR2));
 
+integer i, output_file;
 initial
 	begin
-	$readmemh("Graph_small_multPath.mem",GraphMemory.Register);
-	$readmemh("input_small_multPath.mem",InputMemory.Register);
-	#0 reset = 1; clock = 0;
-	#6 reset = 0;
-	#6999 $writememh("MyOutput_small_multPath.mem",OutputMemory.Register);
-    #7000 $finish;
-	end
+        $monitor ("TIME = %g RESET = %b CLOCK = %b NegCycle = %b Finish = %b ", $time, reset, clock, NegCycle, Finish);
+        output_file = $fopen("MyOutput_small_multPath.dat","w");
+	    $readmemh("Graph_small_multPath.mem",GraphMemory.Register);
+	    $readmemh("input_small_multPath.mem",InputMemory.Register);
+	    #0 reset = 1; clock = 0;
+	    #6 reset = 0;
+    end
+
+    always@ (Finish)
+    begin
+	    for (i = 0; i < 8192; i = i + 1)
+            begin
+                if(OutputMemory.Register[i] == 16'hffff)
+            		$fwrite(output_file,"%H\n",16'hFFFF);
+                else
+            		$fwrite(output_file,"%d\n", OutputMemory.Register[i]);
+	    end
+        $writememh("MyOutput_small_multPath.mem",OutputMemory.Register);
+        $finish;
+    end
+
+    always@(NegCycle)
+    begin
+            $fwrite(output_file,"Negative cycle exists");
+            $fclose(output_file);
+            $finish;
+    end
 
 always
 	#5 	clock = ~clock;
