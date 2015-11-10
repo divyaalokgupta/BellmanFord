@@ -111,6 +111,8 @@ begin
     		casex(current_state)
     		Init:
     		    begin
+                    Finish <= 0;
+                    NegCycle <= 0;
                     GMAR1 <= 0;
                     GMAR2 <= 0;
                     IMAR <= 0;
@@ -196,7 +198,7 @@ begin
                                     end
                                 else if(WMDR1_reg[127] == 1'b0)
                                     begin
-                                        Ureg <= WMAR1[7:0];
+                                        Ureg <= WMAR1;
                                         GMAR2 <= WMAR1 - 1'b1;                           //Get new U node's data from WM
                                     end
                                 else if (WMDR1_reg[127] == 1'b1)
@@ -487,6 +489,8 @@ begin
 	begin
 		if (NodeCounter == 0)
 			next_state = Init3;
+        else
+			next_state = Init2;
 	end
 	else if(current_state == Init3)
 			next_state = Upd_S;

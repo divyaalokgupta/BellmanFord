@@ -52,7 +52,7 @@ initial
 	    #6 reset = 0;
     end
 
-    always@(NegCycle)
+    always@(Finish)
     begin
         for (i = 0; i < 8192; i = i + 1)
             begin
@@ -61,7 +61,7 @@ initial
                 else
             		$fwrite(output_file,"%d\n", OutputMemory.Register[i]);
 	    end
-        $writememh("./test/large/MyOutput.dat",OutputMemory.Register);
+        $writememh("./test/large/MyOutput.mem",OutputMemory.Register);
         $finish;
     end
     
