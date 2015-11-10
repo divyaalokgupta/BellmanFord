@@ -60,7 +60,11 @@ Refresh1 = 5'b10110,
 Refresh2 = 5'b10111,
 End1 = 5'b11000,
 End2 = 5'b11001,
-End3 = 5'b11010;
+End3 = 5'b11010,
+FIFO_Write = 5'b11011,
+FIFO_Read1 = 5'b11100,
+FIFO_Read_Stall1 = 5'b11101,
+FIFO_Read2 = 5'b11110;
 
 /*Boundary Flops */
 reg [127:0] GMDR1_reg;
@@ -94,7 +98,10 @@ reg First_Node;
 reg NegativeCycleCheck;
 reg FirstLine;
 reg MultiLine;
-
+reg [12:0] FIFO_Write_Address;
+reg [12:0] FIFO_Read_Address;
+reg EnableFIFOWrite; 
+reg [7:0] FIFO_Counter;
 reg [4:0] /* synopsys enum states */ current_state, next_state;
 
 /* State Transition */
@@ -145,7 +152,7 @@ begin
                 end
     		Upd_S:
                 begin
-				    WMWAR <= IMDR_reg;
+                    WMWAR <= IMDR_reg;
                     WMWDR[127] = 1'b0;
                     WMWDR[126:119] = 0;
                     WMWDR[118:111] = IMDR_reg;
@@ -153,6 +160,8 @@ begin
 				    WMWE <= 1'b1;
 				    WMAR1 <= IMDR_reg;                                      //Get 1st source node data data from Working Memory
                     NumLinks <= 0;
+                    FIFO_Write_Address <= 13'h100;
+                    FIFO_Read_Address <= 13'h100;
                 end
             Upd_D:
                 begin
@@ -174,11 +183,36 @@ begin
             BFA_Stall1:
                 begin
                 end
+            FIFO_Read1:
+                begin
+                    FirstLine <= 1'b1;
+                    if (FIFO_Counter == 0)
+                         NegativeCycleCheck <= 1'b0;
+                    else
+                    begin
+                         WMAR1 <= FIFO_Read_Address;                               //Get new U node's data from WM
+                         //Ureg <= FIFO_Read_Address;
+                         NodeCounter <= NodeCounter - 1'b1;
+                         //GMAR2 <= FIFO_Read_Address[127:120] - 1'b1;
+                         FIFO_Read_Address <= FIFO_Read_Address + 1'b1;
+                    end
+                end
+            FIFO_Read_Stall1:
+                begin
+                end
+            FIFO_Read2:
+                begin
+                    Ureg <= WMDR1_reg[127:120];
+                    WMAR1[7:0] <= WMDR1_reg[127:120];
+                    WMAR1[12:8] <= 0;
+                    GMAR2[7:0] <= WMDR1_reg[127:120] - 1'b1;
+                    GMAR2[12:8] <= 0;
+                end
             BFA2:
                 begin
                     FirstLine <= 1'b1;
                     casex(First_Node)
-                        0:
+                         0:
                             begin
                                 Ureg <= IMDR_reg;
                                 NegativeCycleCheck <= 1'b1;
@@ -363,6 +397,7 @@ begin
                 begin
                    if($signed(WMDR2_reg[126:119]) > NewWeight || WMDR2_reg[127] == 1)
                     begin
+                        EnableFIFOWrite <= 1'b1;
                         NegativeCycleCheck <= 1'b1;
                         casex(Sub)
                             0:  begin
@@ -398,7 +433,20 @@ begin
                    end
                    LinkCounter <= LinkCounter - 1'b1;
                    NumLinks <= NumLinks - 1'b1;
-                   Sub <= Sub + 1'b1;
+                   Sub <= Sub +1'b1;
+                end
+            FIFO_Write:
+                begin
+                    if(EnableFIFOWrite == 1'b1)
+                    begin
+                        WMWDR[127:120] <= WMWAR[7:0];
+                        WMWDR[119:0] = 0;
+                        WMWAR <= FIFO_Write_Address;
+                        WMWE <= 1'b1;
+                        FIFO_Write_Address <= FIFO_Write_Address + 1'b1;
+                        EnableFIFOWrite <= 1'b0;
+                        FIFO_Counter <= FIFO_Counter + 1'b1;
+                    end
                 end
             OP1:
                 begin
@@ -501,7 +549,16 @@ begin
 	else if(current_state == BFA1)
             next_state = BFA_Stall1;
     else if(current_state == BFA_Stall1)
+        if(First_Node == 0)
             next_state = BFA2;
+        else
+            next_state = FIFO_Read1;
+    else if(current_state == FIFO_Read1)
+            next_state = FIFO_Read_Stall1;
+    else if(current_state == FIFO_Read_Stall1)
+            next_state = FIFO_Read2;
+    else if(current_state == FIFO_Read2)
+            next_state = BFA_Stall3;
 	else if(current_state == BFA2)
     begin
         if (WMDR1_reg[127] == 1'b1)
@@ -558,6 +615,8 @@ begin
 	else if(current_state == BFA_Stall4)
             next_state = BFA6;
 	else if(current_state == BFA6)
+            next_state = FIFO_Write;
+	else if(current_state == FIFO_Write)
             next_state = BFA5;
     else if(current_state == OP1)
             next_state = OP_Stall1;

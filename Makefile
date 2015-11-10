@@ -23,6 +23,9 @@ bellmanford: setup
 sim1: bellmanford
 	vsim -batch -novopt -logfile sim1.log -do bellmanfordtest1.do bellmanfordtest1
 
+sim1g: bellmanford
+	vsim -i -novopt -logfile sim1.log -do bellmanfordtest1.do bellmanfordtest1 &
+
 sim2: bellmanford
 	vsim -batch -novopt -logfile sim2.log -do bellmanfordtest2.do bellmanfordtest2
 

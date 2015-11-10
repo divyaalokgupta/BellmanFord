@@ -54,22 +54,28 @@ initial
 
     always@ (Finish)
     begin
-	    for (i = 0; i < 8192; i = i + 1)
-            begin
-                if(OutputMemory.Register[i] == 16'hffff)
-            		$fwrite(output_file,"%H\n",16'hFFFF);
-                else
-            		$fwrite(output_file,"%d\n", OutputMemory.Register[i]);
-	    end
-        $writememh("MyOutput_small_woNeg.mem",OutputMemory.Register);
-        $finish;
+        if(Finish == 1'b1)
+        begin
+	        for (i = 0; i < 8192; i = i + 1)
+                begin
+                    if(OutputMemory.Register[i] == 16'hffff)
+                		$fwrite(output_file,"%H\n",16'hFFFF);
+                    else
+                		$fwrite(output_file,"%d\n", OutputMemory.Register[i]);
+	        end
+            $writememh("MyOutput_small_woNeg.mem",OutputMemory.Register);
+            $finish;
+        end
     end
 
     always@ (NegCycle)
     begin
+        if(NegCycle == 1'b1)
+        begin
             $fwrite(output_file,"Negative cycle exists");
             $fclose(output_file);
             $finish;
+        end
     end
 
 always
