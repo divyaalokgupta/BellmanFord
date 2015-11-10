@@ -54,6 +54,8 @@ initial
 
     always@(Finish)
     begin
+        if(Finish == 1)
+        begin
         for (i = 0; i < 8192; i = i + 1)
             begin
                 if(OutputMemory.Register[i] == 16'hffff)
@@ -63,13 +65,17 @@ initial
 	    end
         $writememh("./test/large/MyOutput.mem",OutputMemory.Register);
         $finish;
+        end
     end
     
     always@ (NegCycle)
     begin
+        if(Finish == 1)
+        begin
             $fwrite(output_file,"Negative cycle exists");
             $fclose(output_file);
             $finish;
+        end
     end
 
 always

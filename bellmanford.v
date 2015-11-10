@@ -163,13 +163,14 @@ begin
                     WMWDR[110:107] <= 4'b0001;
 				    WMWE <= 1'b1;
 			    	WMAR2 <= GMDR2_reg[111:104];
+                    IMAR <= IMAR - 1'b1;                                              //Look for 1st pair of source and destination pairs
                 end
             BFA1:
                 begin
-                    IMAR <= IMAR - 1'b1;                                              //Look for 1st pair of source and destination pairs
                     WMWE <= 1'b0;
                     First_Node <= 0;
                     NegativeCycleCheck <= 0;
+                    GMAR2 <= NumNodes + 1'b1; //Address where 1st Nodes daughters are stored
                 end
             BFA_Stall1:
                 begin
@@ -185,6 +186,7 @@ begin
                                 WMAR1 <= IMDR_reg;                                             //Get source node data from WM
                                 GMAR1 <= IMDR_reg - 1'b1;                                      //Look for source node's daughters
                                 IMAR <= IMAR + 1'b1;
+
                             end
                         1:
                             begin
@@ -227,6 +229,12 @@ begin
                 end
             BFA4:
                 begin
+                    if(WMDR1_reg[127] == 1'b1)
+                    begin
+                        NumLinks <= 0;
+                        LinkCounter <= 0;
+                    end
+
                     if(FirstLine == 1'b1)
                         begin
                             DistU <= WMDR1_reg[126:119];
@@ -499,28 +507,29 @@ begin
     else if(current_state == Upd_D)
             next_state = BFA1;
 	else if(current_state == BFA1)
-            next_state = BFA_Stall1;
+            next_state = BFA2;
+            //next_state = BFA_Stall1;
     else if(current_state == BFA_Stall1)
             next_state = BFA2;
 	else if(current_state == BFA2)
     begin
         if (WMDR1_reg[127] == 1'b1)
-            next_state = BFA_Stall1;
+            next_state = BFA1;
         else if(First_Node == 1)
         begin
             if ((NegativeCycleCheck == 1'b0) && GMDR2_reg[127:120] == 8'h00 )
                 next_state = OP1;
 //            else if((NodeCounter == 8'h02) && (NegativeCycleCheck == 1'b1))
 //                next_state = BFA_Stall3;
-            else if((NodeCounter == 8'h01) && (NegativeCycleCheck == 1'b0) && GMDR2_reg[127:120] == 8'h00)
-                next_state = OP1;
+//            else if((NodeCounter == 8'h01) && (NegativeCycleCheck == 1'b0) && GMDR2_reg[127:120] == 8'h00)
+//                next_state = OP1;
             else if((NodeCounter == 8'h01) && (NegativeCycleCheck == 1'b1))
                 next_state = End3;
             else
                 next_state = BFA_Stall2;
             end
         else if (WMDR1_reg[127] == 1'b0 && First_Node == 1'b0)
-            next_state = BFA_Stall2;
+            next_state = BFA4;
         else if (WMDR1_reg[127] == 1'b1)
             next_state = BFA_Stall1;
         else
@@ -543,6 +552,9 @@ begin
             next_state = BFA4;
     end
 	else if(current_state == BFA4)
+        if (WMDR1_reg[127] == 1'b1)
+            next_state = BFA_Stall1;
+        else
             next_state = BFA5;
 	else if(current_state == BFA5)
     begin
