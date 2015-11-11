@@ -34,36 +34,36 @@ output reg Finish;
 
 //State encoding
 parameter [5:0] // synopsys enum states
-Init    = 5'b00000,
-Init1   = 5'b00001,
-Init2   = 5'b00010,
-Init3   = 5'b00011,
-Upd_S   = 5'b00100,
-Upd_D   = 5'b00101, 
-BFA1    = 5'b00110,
-BFA_Stall1 = 5'b00111,
-BFA2    = 5'b01000,
-BFA_Stall2    = 5'b01001,
-BFA3    = 5'b01010,
-BFA_Stall3 = 5'b01011,
-BFA4    = 5'b01100,
-BFA5    = 5'b01101,
-BFA_Stall4 = 5'b01110,
-BFA6    = 5'b01111,
-OP1     = 5'b10000,
-OP_Stall1 = 5'b10001,
-OP2     = 5'b10010,
-OP3     = 5'b10011,
-OP4     = 5'b10100,
-OP_Stall2 = 5'b10101,
-Refresh1 = 5'b10110,
-Refresh2 = 5'b10111,
-End1 = 5'b11000,
-End2 = 5'b11001,
-End3 = 5'b11010,
-BFA5_1 = 5'b11011,
-BFA5_2 = 5'b11110,
-BFA5_3 = 5'b11111,
+Init    = 6'b000000,
+Init1   = 6'b000001,
+Init2   = 6'b000010,
+Init3   = 6'b000011,
+Upd_S   = 6'b000100,
+Upd_D   = 6'b000101, 
+BFA1    = 6'b000110,
+BFA_Stall1 = 6'b000111,
+BFA2    = 6'b001000,
+BFA_Stall2    = 6'b001001,
+BFA3    = 6'b001010,
+BFA_Stall3 = 6'b001011,
+BFA4    = 6'b001100,
+BFA5    = 6'b001101,
+BFA_Stall4 = 6'b001110,
+BFA6    = 6'b001111,
+OP1     = 6'b010000,
+OP_Stall1 = 6'b010001,
+OP2     = 6'b010010,
+OP3     = 6'b010011,
+OP4     = 6'b010100,
+OP_Stall2 = 6'b010101,
+Refresh1 = 6'b010110,
+Refresh2 = 6'b010111,
+End1 = 6'b011000,
+End2 = 6'b011001,
+End3 = 6'b011010,
+BFA5_1 = 6'b011011,
+BFA5_2 = 6'b011110,
+BFA5_3 = 6'b011111,
 BFA5_4 = 6'b100000,
 BFA5_5 = 6'b100001,
 BFA5_6 = 6'b100010,
@@ -155,9 +155,9 @@ begin
     		Upd_S:
                 begin
 				    WMWAR <= IMDR_reg;
-                    WMWDR[127] = 1'b0;
-                    WMWDR[126:119] = 0;
-                    WMWDR[118:111] = IMDR_reg;
+                    WMWDR[127] <= 1'b0;
+                    WMWDR[126:119] <= 0;
+                    WMWDR[118:111] <= IMDR_reg;
                     WMWDR[110:107] <= 4'b0010;
 				    WMWE <= 1'b1;
 				    WMAR1 <= IMDR_reg;                                      //Get 1st source node data data from Working Memory
@@ -166,9 +166,9 @@ begin
             Upd_D:
                 begin
 				    WMWAR <= IMDR_reg;
-                    WMWDR[127] = 1'b1;
-                    WMWDR[126:119] = 8'h00;
-                    WMWDR[118:111] = 8'hff;
+                    WMWDR[127] <= 1'b1;
+                    WMWDR[126:119] <= 8'h00;
+                    WMWDR[118:111] <= 8'hff;
                     WMWDR[110:107] <= 4'b0001;
 				    WMWE <= 1'b1;
 			    	WMAR2 <= GMDR2_reg[111:104];
