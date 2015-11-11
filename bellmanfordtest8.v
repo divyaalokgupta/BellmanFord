@@ -1,4 +1,4 @@
-module bellmanfordtest4 ();
+module bellmanfordtest8 ();
 
 reg clock, reset;
 
@@ -45,30 +45,30 @@ integer i, output_file;
 initial
 	begin
         $monitor ("TIME = %g RESET = %b CLOCK = %b NegCycle = %b Finish = %b ", $time, reset, clock, NegCycle, Finish);
-        output_file = $fopen("MyOutput_large_woNeg.dat","w");
-	    $readmemh("Graph_large_woNeg.mem",GraphMemory.Register);
-	    $readmemh("Input_large.dat",InputMemory.Register);
+        output_file = $fopen("./test/secret/MyOutput_secret1.dat","w");
+	    $readmemh("./test/secret/Graph_secret1.mem",GraphMemory.Register);
+	    $readmemh("./test/secret/input_secret1.mem",InputMemory.Register);
 	    #0 reset = 1; clock = 0;
 	    #6 reset = 0;
     end
 
-    always@ (Finish)
+    always@(posedge Finish)
     begin
         if(Finish == 1)
-            begin
-	    for (i = 0; i < 8192; i = i + 1)
+        begin
+        for (i = 0; i < 8192; i = i + 1)
             begin
                 if(OutputMemory.Register[i] == 16'hffff)
             		$fwrite(output_file,"%H\n",16'hFFFF);
                 else
             		$fwrite(output_file,"%d\n", OutputMemory.Register[i]);
 	    end
-        $writememh("MyOutput_large_woNeg.mem",OutputMemory.Register);
+        $writememh("./test/secret/MyOutput1.mem",OutputMemory.Register);
         $finish;
         end
     end
-
-    always@(NegCycle)
+    
+    always@ (posedge NegCycle)
     begin
         if(NegCycle == 1)
         begin

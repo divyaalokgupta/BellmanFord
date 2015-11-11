@@ -70,7 +70,7 @@ initial
     
     always@ (NegCycle)
     begin
-        if(Finish == 1)
+        if(NegCycle == 1)
         begin
             $fwrite(output_file,"Negative cycle exists");
             $fclose(output_file);

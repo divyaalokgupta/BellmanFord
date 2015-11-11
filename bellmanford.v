@@ -682,21 +682,23 @@ begin
             next_state = BFA1;
 	else if(current_state == BFA1)
             next_state = BFA2;
-            //next_state = BFA_Stall1;
     else if(current_state == BFA_Stall1)
             next_state = BFA2;
 	else if(current_state == BFA2)
     begin
         if (WMDR1_reg[127] == 1'b1)
-            next_state = BFA1;
-        else if((NodeCounter == 8'h01) && (NegativeCycleCheck == 1'b1))
-                next_state = End3;
-        else if ((NegativeCycleCheck == 1'b0) && GMDR2_reg == 0  )
+            next_state = BFA_Stall1;
+        else if(First_Node == 1)
+        begin
+            if ((NegativeCycleCheck == 1'b0) && GMDR2_reg[127:120] == 8'h00 )
                 next_state = OP1;
-        else if((NodeCounter == 8'h01) && (NegativeCycleCheck == 1'b1))
+            else if((NodeCounter == 8'h01) && (NegativeCycleCheck == 1'b1))
                 next_state = End3;
-        else if (WMDR1_reg[127] == 1'b1)
-            next_state = BFA1;
+            else
+                next_state = BFA_Stall2;
+            end
+        else if (WMDR1_reg[127] == 1'b0 && First_Node == 1'b0)
+            next_state = BFA_Stall2;
         else
             next_state = BFA_Stall2;
     end
@@ -789,7 +791,7 @@ begin
         else if (NumLinks != 1 && LinkCounter == 1)
             next_state = BFA_Stall3;
         else
-            next_state = BFA5_8;
+            next_state = BFA5_9;
     end
 	else if(current_state == BFA5_9)
     begin
