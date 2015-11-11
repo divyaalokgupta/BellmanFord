@@ -33,7 +33,7 @@ output reg NegCycle;
 output reg Finish;
 
 //State encoding
-parameter [4:0] // synopsys enum states
+parameter [5:0] // synopsys enum states
 Init    = 5'b00000,
 Init1   = 5'b00001,
 Init2   = 5'b00010,
@@ -60,7 +60,16 @@ Refresh1 = 5'b10110,
 Refresh2 = 5'b10111,
 End1 = 5'b11000,
 End2 = 5'b11001,
-End3 = 5'b11010;
+End3 = 5'b11010,
+BFA5_1 = 5'b11011,
+BFA5_2 = 5'b11110,
+BFA5_3 = 5'b11111,
+BFA5_4 = 6'b100000,
+BFA5_5 = 6'b100001,
+BFA5_6 = 6'b100010,
+BFA5_7 = 6'b100011,
+BFA5_8 = 6'b100100,
+BFA5_9 = 6'b100101;
 
 /*Boundary Flops */
 reg [127:0] GMDR1_reg;
@@ -95,7 +104,7 @@ reg NegativeCycleCheck;
 reg FirstLine;
 reg MultiLine;
 
-reg [4:0] /* synopsys enum states */ current_state, next_state;
+reg [5:0] /* synopsys enum states */ current_state, next_state;
 
 /* State Transition */
 always@(posedge clock)
@@ -164,13 +173,12 @@ begin
 				    WMWE <= 1'b1;
 			    	WMAR2 <= GMDR2_reg[111:104];
                     IMAR <= IMAR - 1'b1;                                              //Look for 1st pair of source and destination pairs
+                    First_Node <= 0;
+                    NegativeCycleCheck <= 0;
                 end
             BFA1:
                 begin
                     WMWE <= 1'b0;
-                    First_Node <= 0;
-                    NegativeCycleCheck <= 0;
-                    GMAR2 <= NumNodes + 1'b1; //Address where 1st Nodes daughters are stored
                 end
             BFA_Stall1:
                 begin
@@ -190,11 +198,11 @@ begin
                             end
                         1:
                             begin
-                                if(GMDR2_reg[127:120] == 0)
+                                if(WMAR1 > NumNodes)
                                     begin
                                         NegativeCycleCheck <= 1'b0;
-                                        Ureg <= GMDR1_reg[71:64];
-                                        WMAR1 <= GMDR1_reg[71:64];                               //Get new U node's data from WM
+                                        Ureg <= 1;
+                                        WMAR1 <= 1;                               //Get new U node's data from WM
                                         NodeCounter <= NodeCounter - 1'b1;
                                         GMAR2 <= GMDR1_reg[71:64] - 1'b1;
                                     end
@@ -203,13 +211,8 @@ begin
                                         Ureg <= WMAR1;
                                         GMAR2 <= WMAR1 - 1'b1;                           //Get new U node's data from WM
                                     end
-                                else if (WMDR1_reg[127] == 1'b1)
-                                    begin
-                                        if(WMAR1[7:0] == NumNodes)
-                                            WMAR1 <= 0;
-                                        else
-                                            WMAR1 <= WMAR1 + 1'b1;
-                                    end
+                                else
+                                     WMAR1 <= WMAR1 + 1'b1;
                             end
                     endcase
                 end
@@ -226,6 +229,7 @@ begin
                 end
             BFA_Stall3:
                 begin
+                    WMWE <= 1'b0;
                 end
             BFA4:
                 begin
@@ -265,6 +269,7 @@ begin
 				            Wreg[7] <= GMDR2_reg[7:0];
                             Vreg[8] <= 0;
                             Wreg[8] <= 0;
+                            WMAR2 <= GMDR2_reg[111:104]; 
                         end
                     else
                         begin
@@ -294,119 +299,288 @@ begin
 				            Wreg[7] <= GMDR2_reg[23:16];
 				            Vreg[8] <= GMDR2_reg[15:8];
 				            Wreg[8] <= GMDR2_reg[7:0];
+                            WMAR2 <= GMDR2_reg[127:120]; 
                         end
                     Sub <= 0;
+
                 end
-            BFA5:
+            BFA5_1:
                 begin
+                    NewWeight <= DistU + Wreg[1];
+                    WMAR2 <= Vreg[2];
+                    WMWE <= 1'b0;
+//                    if (NumLinks == 1)
+//                    begin
+//                       First_Node <= 1'b1;
+//                    end
+//
+//                    if(LinkCounter == 1 )
+//                    begin
+//                       FirstLine <= 1'b0;
+//                       GMAR2 <= GMAR2 + 1'b1;
+//                    end
+//
+//                    if(NumLinks == 1 && LinkCounter == 1)
+//                        WMAR1 <= WMAR1 + 1'b1;
+                end
+            BFA5_2:
+                begin
+                    LinkCounter <= LinkCounter - 1;
+                    NumLinks <= NumLinks - 1;
                     WMWE <= 1'b0;
                     
-                    if(WMDR1_reg[127] == 1'b1)
-                    begin
-                        NumLinks <= 0;
-                        LinkCounter <= 0;
-                    end
-                    
-                    if (NumLinks == 0)
+                    if($signed(WMDR2_reg[126:119]) > NewWeight || WMDR2_reg[127] == 1)
+                        begin
+                            NegativeCycleCheck <= 1'b1;
+                            WMWAR <= Vreg[1];
+                            WMWE <= 1'b1;
+                            WMWDR[127] <= 0;
+                            WMWDR[126:119] <= NewWeight;
+                            WMWDR[118:111] <= Ureg;
+                            WMWDR[110:107] <= WMDR2_reg[110:107];
+                        end
+                    NewWeight <= DistU + Wreg[2];
+                    WMAR2 <= Vreg[3]; 
+                    if (NumLinks == 1)
                     begin
                        First_Node <= 1'b1;
                     end
 
-                    if(LinkCounter == 0 )
+                    if(LinkCounter == 1 )
                     begin
                        FirstLine <= 1'b0;
                        GMAR2 <= GMAR2 + 1'b1;
                     end
 
-                    if(NumLinks == 0 && LinkCounter == 0)
+                    if(NumLinks == 1 && LinkCounter == 1)
                         WMAR1 <= WMAR1 + 1'b1;
 
-                    case(Sub)
-                        0: 
-                            begin
-                                WMAR2 <= Vreg[1];
-                                NewWeight <= DistU + Wreg[1];
-                            end
-                        1: 
-                            begin
-                                WMAR2 <= Vreg[2];  
-                                NewWeight <= DistU + Wreg[2];
-                            end
-                        2:  
-                            begin
-                                WMAR2 <= Vreg[3];  
-                                NewWeight <= DistU + Wreg[3];
-                            end
-                        3:  
-                            begin
-                                WMAR2 <= Vreg[4];  
-                                NewWeight <= DistU + Wreg[4];
-                            end
-                        4:  
-                            begin
-                                WMAR2 <= Vreg[5];  
-                                NewWeight <= DistU + Wreg[5];
-                            end
-                        5:  
-                            begin
-                                WMAR2 <= Vreg[6];  
-                                NewWeight <= DistU + Wreg[6];
-                            end
-                        6:  
-                            begin
-                                WMAR2 <= Vreg[7];  
-                                NewWeight <= DistU + Wreg[7];
-                            end
-                        7:  
-                            begin
-                                WMAR2 <= Vreg[8];  
-                                NewWeight <= DistU + Wreg[8];
-                            end
-                    endcase
                 end
-            BFA_Stall4:
+            BFA5_3:
                 begin
+                    LinkCounter <= LinkCounter - 1;
+                    NumLinks <= NumLinks - 1;
+                    WMWE <= 1'b0;
+                    
+                    if($signed(WMDR2_reg[126:119]) > NewWeight || WMDR2_reg[127] == 1)
+                        begin
+                            NegativeCycleCheck <= 1'b1;
+                            WMWAR <= Vreg[2];
+                            WMWE <= 1'b1;
+                            WMWDR[127] <= 0;
+                            WMWDR[126:119] <= NewWeight;
+                            WMWDR[118:111] <= Ureg;
+                            WMWDR[110:107] <= WMDR2_reg[110:107];
+                        end
+                    NewWeight <= DistU + Wreg[3];
+                    WMAR2 <= Vreg[4]; 
+                    if (NumLinks == 1)
+                    begin
+                       First_Node <= 1'b1;
+                    end
+
+                    if(LinkCounter == 1 )
+                    begin
+                       FirstLine <= 1'b0;
+                       GMAR2 <= GMAR2 + 1'b1;
+                    end
+
+                    if(NumLinks == 1 && LinkCounter == 1)
+                        WMAR1 <= WMAR1 + 1'b1;
+
+                end
+            BFA5_4:
+                begin
+                    LinkCounter <= LinkCounter - 1;
+                    NumLinks <= NumLinks - 1;
+                    WMWE <= 1'b0;
+                    
+                    if($signed(WMDR2_reg[126:119]) > NewWeight || WMDR2_reg[127] == 1)
+                        begin
+                            NegativeCycleCheck <= 1'b1;
+                            WMWAR <= Vreg[3];
+                            WMWE <= 1'b1;
+                            WMWDR[127] <= 0;
+                            WMWDR[126:119] <= NewWeight;
+                            WMWDR[118:111] <= Ureg;
+                            WMWDR[110:107] <= WMDR2_reg[110:107];
+                        end
+                    NewWeight <= DistU + Wreg[4];
+                    WMAR2 <= Vreg[5]; 
+                    if (NumLinks == 1)
+                    begin
+                       First_Node <= 1'b1;
+                    end
+
+                    if(LinkCounter == 1 )
+                    begin
+                       FirstLine <= 1'b0;
+                       GMAR2 <= GMAR2 + 1'b1;
+                    end
+
+                    if(NumLinks == 1 && LinkCounter == 1)
+                        WMAR1 <= WMAR1 + 1'b1;
+                end
+            BFA5_5:
+                begin
+                    LinkCounter <= LinkCounter - 1;
+                    NumLinks <= NumLinks - 1;
+                    WMWE <= 1'b0;
+                    
+                    if($signed(WMDR2_reg[126:119]) > NewWeight || WMDR2_reg[127] == 1)
+                        begin
+                            NegativeCycleCheck <= 1'b1;
+                            WMWAR <= Vreg[4];
+                            WMWE <= 1'b1;
+                            WMWDR[127] <= 0;
+                            WMWDR[126:119] <= NewWeight;
+                            WMWDR[118:111] <= Ureg;
+                            WMWDR[110:107] <= WMDR2_reg[110:107];
+                        end
+                    NewWeight <= DistU + Wreg[5];
+                    WMAR2 <= Vreg[6]; 
+                    if (NumLinks == 1)
+                    begin
+                       First_Node <= 1'b1;
+                    end
+
+                    if(LinkCounter == 1 )
+                    begin
+                       FirstLine <= 1'b0;
+                       GMAR2 <= GMAR2 + 1'b1;
+                    end
+
+                    if(NumLinks == 1 && LinkCounter == 1)
+                        WMAR1 <= WMAR1 + 1'b1;
+                end
+            BFA5_6:
+                begin
+                    LinkCounter <= LinkCounter - 1;
+                    NumLinks <= NumLinks - 1;
+                    WMWE <= 1'b0;
+                    
+                    if($signed(WMDR2_reg[126:119]) > NewWeight || WMDR2_reg[127] == 1)
+                        begin
+                            NegativeCycleCheck <= 1'b1;
+                            WMWAR <= Vreg[5];
+                            WMWE <= 1'b1;
+                            WMWDR[127] <= 0;
+                            WMWDR[126:119] <= NewWeight;
+                            WMWDR[118:111] <= Ureg;
+                            WMWDR[110:107] <= WMDR2_reg[110:107];
+                        end
+                    NewWeight <= DistU + Wreg[6];
+                    WMAR2 <= Vreg[7]; 
+                    if (NumLinks == 1)
+                    begin
+                       First_Node <= 1'b1;
+                    end
+
+                    if(LinkCounter == 1 )
+                    begin
+                       FirstLine <= 1'b0;
+                       GMAR2 <= GMAR2 + 1'b1;
+                    end
+
+                    if(NumLinks == 1 && LinkCounter == 1)
+                        WMAR1 <= WMAR1 + 1'b1;
+                end
+            BFA5_7:
+                begin
+                    LinkCounter <= LinkCounter - 1;
+                    NumLinks <= NumLinks - 1;
+                    WMWE <= 1'b0;
+                    
+                    if($signed(WMDR2_reg[126:119]) > NewWeight || WMDR2_reg[127] == 1)
+                        begin
+                            NegativeCycleCheck <= 1'b1;
+                            WMWAR <= Vreg[6];
+                            WMWE <= 1'b1;
+                            WMWDR[127] <= 0;
+                            WMWDR[126:119] <= NewWeight;
+                            WMWDR[118:111] <= Ureg;
+                            WMWDR[110:107] <= WMDR2_reg[110:107];
+                        end
+                    NewWeight <= DistU + Wreg[7];
+                    WMAR2 <= Vreg[8]; 
+                    if (NumLinks == 1)
+                    begin
+                       First_Node <= 1'b1;
+                    end
+
+                    if(LinkCounter == 1 )
+                    begin
+                       FirstLine <= 1'b0;
+                       GMAR2 <= GMAR2 + 1'b1;
+                    end
+
+                    if(NumLinks == 1 && LinkCounter == 1)
+                        WMAR1 <= WMAR1 + 1'b1;
+                end
+            BFA5_8:
+                begin
+                    LinkCounter <= LinkCounter - 1;
+                    NumLinks <= NumLinks - 1;
+                    WMWE <= 1'b0;
+                    
+                    if($signed(WMDR2_reg[126:119]) > NewWeight || WMDR2_reg[127] == 1)
+                        begin
+                            NegativeCycleCheck <= 1'b1;
+                            WMWAR <= Vreg[7];
+                            WMWE <= 1'b1;
+                            WMWDR[127] <= 0;
+                            WMWDR[126:119] <= NewWeight;
+                            WMWDR[118:111] <= Ureg;
+                            WMWDR[110:107] <= WMDR2_reg[110:107];
+                        end
+                    NewWeight <= DistU + Wreg[8];
+                    if (NumLinks == 1)
+                    begin
+                       First_Node <= 1'b1;
+                    end
+
+                    if(LinkCounter == 1 )
+                    begin
+                       FirstLine <= 1'b0;
+                       GMAR2 <= GMAR2 + 1'b1;
+                    end
+
+                    if(NumLinks == 1 && LinkCounter == 1)
+                        WMAR1 <= WMAR1 + 1'b1;
+                end
+            BFA5_9:
+                begin
+                    LinkCounter <= LinkCounter - 1;
+                    NumLinks <= NumLinks - 1;
+                    WMWE <= 1'b0;
+                    
+                    if($signed(WMDR2_reg[126:119]) > NewWeight || WMDR2_reg[127] == 1)
+                        begin
+                            NegativeCycleCheck <= 1'b1;
+                            WMWAR <= Vreg[8];
+                            WMWE <= 1'b1;
+                            WMWDR[127] <= 0;
+                            WMWDR[126:119] <= NewWeight;
+                            WMWDR[118:111] <= Ureg;
+                            WMWDR[110:107] <= WMDR2_reg[110:107];
+                        end
+                    
+                    if (NumLinks == 1)
+                    begin
+                       First_Node <= 1'b1;
+                    end
+
+                    if(LinkCounter == 1 )
+                    begin
+                       FirstLine <= 1'b0;
+                       GMAR2 <= GMAR2 + 1'b1;
+                    end
+
+                    if(NumLinks == 1 && LinkCounter == 1)
+                        WMAR1 <= WMAR1 + 1'b1;
                 end
             BFA6:
                 begin
-                   if($signed(WMDR2_reg[126:119]) > NewWeight || WMDR2_reg[127] == 1)
-                    begin
-                        NegativeCycleCheck <= 1'b1;
-                        casex(Sub)
-                            0:  begin
-                                    WMWAR <= Vreg[1]; 
-                                end
-                            1:  begin
-                                    WMWAR <= Vreg[2]; 
-                                end
-                            2:  begin 
-                                    WMWAR <= Vreg[3]; 
-                                end
-                            3:  begin 
-                                    WMWAR <= Vreg[4]; 
-                                end
-                            4:  begin 
-                                    WMWAR <= Vreg[5]; 
-                                end
-                            5:  begin 
-                                    WMWAR <= Vreg[6]; 
-                                end
-                            6:  begin 
-                                    WMWAR <= Vreg[7]; 
-                                end
-                            7:  begin 
-                                    WMWAR <= Vreg[8]; 
-                                end
-                        endcase
-                        WMWDR[127] = 1'b0;
-                        WMWDR[126:119] <= NewWeight;
-                        WMWDR[118:111] <= Ureg;
-                        WMWDR[110:107] <= WMDR2_reg[110:107];
-                        WMWE <= 1'b1;
-                   end
-                   LinkCounter <= LinkCounter - 1'b1;
-                   NumLinks <= NumLinks - 1'b1;
-                   Sub <= Sub + 1'b1;
                 end
             OP1:
                 begin
@@ -515,23 +689,14 @@ begin
     begin
         if (WMDR1_reg[127] == 1'b1)
             next_state = BFA1;
-        else if(First_Node == 1)
-        begin
-            if ((NegativeCycleCheck == 1'b0) && GMDR2_reg[127:120] == 8'h00 )
-                next_state = OP1;
-//            else if((NodeCounter == 8'h02) && (NegativeCycleCheck == 1'b1))
-//                next_state = BFA_Stall3;
-//            else if((NodeCounter == 8'h01) && (NegativeCycleCheck == 1'b0) && GMDR2_reg[127:120] == 8'h00)
-//                next_state = OP1;
-            else if((NodeCounter == 8'h01) && (NegativeCycleCheck == 1'b1))
+        else if((NodeCounter == 8'h01) && (NegativeCycleCheck == 1'b1))
                 next_state = End3;
-            else
-                next_state = BFA_Stall2;
-            end
-        else if (WMDR1_reg[127] == 1'b0 && First_Node == 1'b0)
-            next_state = BFA4;
+        else if ((NegativeCycleCheck == 1'b0) && GMDR2_reg == 0  )
+                next_state = OP1;
+        else if((NodeCounter == 8'h01) && (NegativeCycleCheck == 1'b1))
+                next_state = End3;
         else if (WMDR1_reg[127] == 1'b1)
-            next_state = BFA_Stall1;
+            next_state = BFA1;
         else
             next_state = BFA_Stall2;
     end
@@ -547,25 +712,91 @@ begin
 	else if(current_state == BFA_Stall3)
     begin
         if(WMDR1_reg[127] == 1'b1)
-            next_state = BFA5;
+            next_state = BFA5_1;
         else
             next_state = BFA4;
     end
 	else if(current_state == BFA4)
         if (WMDR1_reg[127] == 1'b1)
-            next_state = BFA_Stall1;
+            next_state = BFA1;
         else
-            next_state = BFA5;
-	else if(current_state == BFA5)
+            next_state = BFA5_1;
+	else if(current_state == BFA5_1)
     begin
-        if (WMDR1_reg[127] == 1'b1)
-            next_state = BFA_Stall1;
-        else if(NumLinks == 0 && LinkCounter == 0)
-            next_state = BFA_Stall1;
-        else if (NumLinks != 0 && LinkCounter == 0)
+        if (NumLinks == 0 && LinkCounter == 0)
             next_state = BFA_Stall3;
         else
-            next_state = BFA_Stall4;
+            next_state = BFA5_2;
+    end
+	else if(current_state == BFA5_2)
+    begin
+        if(NumLinks == 1 && LinkCounter == 1)
+            next_state = BFA1;
+        else if (NumLinks != 1 && LinkCounter == 1)
+            next_state = BFA_Stall3;
+        else
+            next_state = BFA5_3;
+    end
+	else if(current_state == BFA5_3)
+    begin
+        if(NumLinks == 1 && LinkCounter == 1)
+            next_state = BFA1;
+        else if (NumLinks != 1 && LinkCounter == 1)
+            next_state = BFA_Stall3;
+        else
+            next_state = BFA5_4;
+    end
+	else if(current_state == BFA5_4)
+    begin
+        if(NumLinks == 1 && LinkCounter == 1)
+            next_state = BFA1;
+        else if (NumLinks != 1 && LinkCounter == 1)
+            next_state = BFA_Stall3;
+        else
+            next_state = BFA5_5;
+    end
+	else if(current_state == BFA5_5)
+    begin
+        if(NumLinks == 1 && LinkCounter == 1)
+            next_state = BFA1;
+        else if (NumLinks != 1 && LinkCounter == 1)
+            next_state = BFA_Stall3;
+        else
+            next_state = BFA5_6;
+    end
+	else if(current_state == BFA5_6)
+    begin
+        if(NumLinks == 1 && LinkCounter == 1)
+            next_state = BFA1;
+        else if (NumLinks != 1 && LinkCounter == 1)
+            next_state = BFA_Stall3;
+        else
+            next_state = BFA5_7;
+    end
+	else if(current_state == BFA5_7)
+    begin
+        if(NumLinks == 1 && LinkCounter == 1)
+            next_state = BFA1;
+        else if (NumLinks != 1 && LinkCounter == 1)
+            next_state = BFA_Stall3;
+        else
+            next_state = BFA5_8;
+    end
+	else if(current_state == BFA5_8)
+    begin
+        if(NumLinks == 1 && LinkCounter == 1)
+            next_state = BFA1;
+        else if (NumLinks != 1 && LinkCounter == 1)
+            next_state = BFA_Stall3;
+        else
+            next_state = BFA5_8;
+    end
+	else if(current_state == BFA5_9)
+    begin
+        if(NumLinks == 1 && LinkCounter == 1)
+            next_state = BFA1;
+        else if (NumLinks != 1 && LinkCounter == 1)
+            next_state = BFA_Stall3;
     end
 	else if(current_state == BFA_Stall4)
             next_state = BFA6;
